@@ -59,11 +59,12 @@ limit you set in `Capabilities` applies on every provider. The capabilities you 
 images and, for the System One presets, the model listing the client checks. While model listing is off, a model-listing
 call returns the `Unsupported` kind.
 
-Five rules belong to none of these columns. They are what an
-[upstream decision client](extensions-ai-decisions/mapping.md) from Microsoft.Extensions.AI cannot take: MIN207 for an
-empty set, MIN208 for a blank key, MIN209 for a blank description, MIN210 for a Noul with blank instructions and no pair
-of descriptions, and MIN211 for a one-level Score. The planned adapter over such a client checks them before sending,
-together with MIN205 and MIN206.
+Four rules belong to none of these columns. They are what an
+[upstream decision client](extensions-ai-decisions/mapping.md) from Microsoft.Extensions.AI cannot take: MIN207 for a
+blank key, MIN208 for a blank description, MIN209 for a Noul with blank instructions and no pair of descriptions, and
+MIN210 for a one-level Score. The planned adapter over such a client checks them before sending, together with MIN205
+and MIN206. It refuses a set with no questions too, with a `Validation` error and no rule, as the chat client adapter
+does.
 
 ## The presets
 
@@ -416,16 +417,15 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 | `MIN204` | A Noul has `WhenTrue` or `WhenFalse`, on OpenAI. | the question | `OpenAI does not support WhenTrue or WhenFalse on a Noul; put the meaning in the instructions.` |
 | `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI or an upstream decision client. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
 | `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
-| `MIN207` | The set has no questions, on an upstream decision client. | none | `Upstream needs at least one question; the set has none.` |
-| `MIN208` | A question key or a Choice option key is white space only, on an upstream decision client. | the question | `Upstream does not accept a question or option key that is white space only.` |
-| `MIN209` | A Noul's `WhenTrue` or `WhenFalse`, or a text criterion, is empty or white space only, on an upstream decision client. | the question | `Upstream does not accept a description that is empty or white space only.` |
-| `MIN210` | A Noul's instructions are blank text and it lacks `WhenTrue` or `WhenFalse`, on an upstream decision client. | the question | `Upstream needs a Noul's instructions, or both WhenTrue and WhenFalse, to be more than white space.` |
-| `MIN211` | A Score question has one level, on an upstream decision client. | the question | `Upstream needs at least two levels on a Score question.` |
+| `MIN207` | A question key or a Choice option key is white space only, on an upstream decision client. | the question | `Upstream does not accept a question or option key that is white space only.` |
+| `MIN208` | A Noul's `WhenTrue` or `WhenFalse`, or a text criterion, is empty or white space only, on an upstream decision client. | the question | `Upstream does not accept a description that is empty or white space only.` |
+| `MIN209` | A Noul's instructions are blank text and it lacks `WhenTrue` or `WhenFalse`, on an upstream decision client. | the question | `Upstream needs a Noul's instructions, or both WhenTrue and WhenFalse, to be more than white space.` |
+| `MIN210` | A Score question has one level, on an upstream decision client. | the question | `Upstream needs at least two levels on a Score question.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
 order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The adapter over an upstream
-decision client follows the same order, generic rules first: `MIN207`, then each question's `MIN201` in the order it is
-sent, then `MIN206`, then each question's `MIN205` and `MIN208` to `MIN211` in the order it is sent. The MIN2 series
+decision client follows the same order, generic rules first: each question's `MIN201` in the order it is sent, then
+`MIN206`, then each question's `MIN205` and `MIN207` to `MIN210` in the order it is sent. The MIN2 series
 is for these provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
 MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
 [diagnostics](diagnostics.md) lists them.

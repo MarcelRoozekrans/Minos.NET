@@ -15,10 +15,12 @@ namespace Minos.Extensions.AI.Decisions;
 /// docs/extensions-ai-decisions/mapping.md describes row by row.
 /// </summary>
 /// <remarks>
-/// Minos to upstream returns <see cref="DecisionErrorKind.Unsupported"/> before anything is sent for each rule the page
-/// refuses, in the order a native Minos client uses, generic capability rules before provider-specific ones: MIN207 for
-/// an empty set, then MIN201 for each question of a kind the provider does not support in wire order, then MIN206 for
-/// images, then each question's page refusals in wire order, one per rule in rule-id order (MIN205, MIN208 to MIN211).
+/// Minos to upstream returns <see cref="DecisionErrorKind.Validation"/> before anything is sent for a set with no
+/// questions, as the chat client adapter does, with no <see cref="QuestionFailure"/>. Otherwise it returns
+/// <see cref="DecisionErrorKind.Unsupported"/> before anything is sent for each rule the page refuses, in the order a
+/// native Minos client uses, generic capability rules before provider-specific ones: MIN201 for each question of a kind
+/// the provider does not support in wire order, then MIN206 for images, then each question's page refusals in wire
+/// order, one per rule in rule-id order (MIN205, MIN207 to MIN210).
 /// Every other loss converts as the page says. No message carries question text or state.
 /// </remarks>
 [Experimental("MEAI001")]
@@ -28,11 +30,19 @@ internal static partial class DecisionMapper
     /// <param name="request">The Minos request.</param>
     /// <param name="providerName">The provider, named at the start of each failure message.</param>
     /// <param name="kinds">The question kinds the provider supports; a question of another kind fails with MIN201.</param>
-    /// <returns>The upstream call, or <see cref="DecisionErrorKind.Unsupported"/> with every failure.</returns>
+    /// <returns>
+    /// The upstream call, <see cref="DecisionErrorKind.Validation"/> for a set with no questions, or
+    /// <see cref="DecisionErrorKind.Unsupported"/> with every failure.
+    /// </returns>
     /// <remarks>The retry attempt and the deadline are dropped; upstream requests have neither.</remarks>
     internal static Result<UpstreamCall, DecisionError> ToUpstream(MinosRequest request, string providerName, QuestionKinds kinds = QuestionKinds.All)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        if (request.Definition.Questions.Count == 0)
+        {
+            return Result<UpstreamCall, DecisionError>.Failure(NoQuestions());
+        }
 
         if (CollectUnsupported(request.Definition, request.Images.Count, kinds, providerName) is { } failures)
         {
@@ -46,10 +56,18 @@ internal static partial class DecisionMapper
     /// <summary>Converts a Minos question set to upstream questions, in wire order.</summary>
     /// <param name="definition">The question set.</param>
     /// <param name="providerName">The provider, named at the start of each failure message.</param>
-    /// <returns>The questions, or <see cref="DecisionErrorKind.Unsupported"/> with every failure.</returns>
+    /// <returns>
+    /// The questions, <see cref="DecisionErrorKind.Validation"/> for a set with no questions, or
+    /// <see cref="DecisionErrorKind.Unsupported"/> with every failure.
+    /// </returns>
     internal static Result<IReadOnlyList<DecisionQuestion>, DecisionError> ToUpstreamQuestions(QuestionSetDefinition definition, string providerName)
     {
         ArgumentNullException.ThrowIfNull(definition);
+
+        if (definition.Questions.Count == 0)
+        {
+            return Result<IReadOnlyList<DecisionQuestion>, DecisionError>.Failure(NoQuestions());
+        }
 
         return CollectUnsupported(definition, imageCount: 0, QuestionKinds.All, providerName) is { } failures
             ? Result<IReadOnlyList<DecisionQuestion>, DecisionError>.Failure(Unsupported(failures))
@@ -69,11 +87,6 @@ internal static partial class DecisionMapper
 
         List<QuestionFailure>? failures = null;
         var questions = definition.Questions;
-        if (questions.Count == 0)
-        {
-            failures = [new QuestionFailure(DiagnosticIds.EmptyQuestionSet, null, providerName + " needs at least one question; the set has none.")];
-        }
-
         if (kinds != QuestionKinds.All)
         {
             foreach (var question in questions)
@@ -98,6 +111,10 @@ internal static partial class DecisionMapper
 
         return failures;
     }
+
+    // The message is copied from Minos.Extensions.AI.ChatDecisionClient, which refuses an empty set the same way before
+    // sending; keep the wording the same as there.
+    private static DecisionError NoQuestions() => new(DecisionErrorKind.Validation, "The request has no questions.");
 
     // FlagOf, NameOf and the MIN201 message above are copied from Minos.Transport.CapabilitySet in Minos.NET, which this
     // project cannot see; keep the wording the same as there.

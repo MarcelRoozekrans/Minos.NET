@@ -11,8 +11,7 @@ namespace Minos.Extensions.AI.Decisions.Tests;
 /// <remarks>
 /// An adapter sends nothing over HTTP, so the target uses the chat-completions wire, the one whose checks read the answers
 /// as Minos read them: S3, D1 to D4 and M1 run on the adapter's result, and E1 checks that a request with no questions is
-/// refused with Validation before anything is sent. E1 fails on both adapters, which refuse it with Unsupported; the test
-/// pins that failure as a finding. The checks that read the wire, S1, S2, E2, E3, R1 and R3, have no exchange to read,
+/// refused with Validation before anything is sent. The checks that read the wire, S1, S2, E2, E3, R1 and R3, have no exchange to read,
 /// R2 has no model rule, since an adapter promises no model, and E4 meets no 429, so each of those is skipped with the
 /// suite's own reason. The test pins every outcome and every skip reason, so a check that starts to skip, or to pass
 /// without running, fails it.
@@ -81,12 +80,7 @@ public sealed class AdapterConformanceTests(ITestOutputHelper output)
         Answer("score", choiceOrScore: true, score: true, mixed: false);
         Answer("mixed", choiceOrScore: true, score: true, mixed: true);
         Answer("keyed", choiceOrScore: true, score: true, mixed: false);
-
-        // FINDING, not a pass: the suite expects a request with no questions to be refused with Validation, as every other
-        // provider does, and both adapters refuse it before sending with Unsupported, rule MIN207, as
-        // docs/extensions-ai-decisions/mapping.md decides. The failure is pinned so it stays visible in the report and in
-        // this test; when the adapter or the check changes, this line must change with it.
-        expected.Add(("invalid", "E1", CheckOutcome.Fail, "Minos returned Unsupported, not Validation."));
+        expected.Add(("invalid", "E1", CheckOutcome.Pass, null));
         expected.Add(("invalid", "E3", CheckOutcome.Skipped, "No error response."));
         expected.Add(("bad-key", "E2", CheckOutcome.Skipped, "No request was sent."));
         expected.Add(("bad-key", "E3", CheckOutcome.Skipped, "No error response."));

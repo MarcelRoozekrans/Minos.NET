@@ -143,11 +143,14 @@ public sealed class DecisionMapperQuestionTests
     // ---- The refusals before sending ----
 
     [Fact]
-    public void AnEmptyQuestionSet_IsUnsupported_WithOneSetLevelFailure()
+    public void AnEmptyQuestionSet_IsAValidationError_WithNoFailures()
     {
-        var failure = SingleFailure(DecisionMapper.ToUpstreamQuestions(new QuestionSetDefinition(), Provider));
+        var result = DecisionMapper.ToUpstreamQuestions(new QuestionSetDefinition(), Provider);
 
-        Assert.Equal(("MIN207", null), (failure.Rule, failure.QuestionKey));
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
+        Assert.Equal("The request has no questions.", result.Error.Message);
+        Assert.Empty(result.Error.Failures);
     }
 
     [Fact]
@@ -157,7 +160,7 @@ public sealed class DecisionMapperQuestionTests
 
         var failure = SingleFailure(DecisionMapper.ToUpstreamQuestions(definition, Provider));
 
-        Assert.Equal(("MIN208", " \t"), (failure.Rule, failure.QuestionKey));
+        Assert.Equal(("MIN207", " \t"), (failure.Rule, failure.QuestionKey));
     }
 
     [Fact]
@@ -168,7 +171,7 @@ public sealed class DecisionMapperQuestionTests
 
         var failure = SingleFailure(DecisionMapper.ToUpstreamQuestions(definition, Provider));
 
-        Assert.Equal(("MIN208", "team"), (failure.Rule, failure.QuestionKey));
+        Assert.Equal(("MIN207", "team"), (failure.Rule, failure.QuestionKey));
     }
 
     [Theory]
@@ -179,8 +182,8 @@ public sealed class DecisionMapperQuestionTests
         var whenTrue = new QuestionSetDefinition(QuestionDefinition.Noul("spam", "Is it spam?", whenTrue: blank));
         var whenFalse = new QuestionSetDefinition(QuestionDefinition.Noul("spam", "Is it spam?", whenFalse: blank));
 
-        Assert.Equal(("MIN209", "spam"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(whenTrue, Provider))));
-        Assert.Equal(("MIN209", "spam"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(whenFalse, Provider))));
+        Assert.Equal(("MIN208", "spam"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(whenTrue, Provider))));
+        Assert.Equal(("MIN208", "spam"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(whenFalse, Provider))));
     }
 
     [Theory]
@@ -191,8 +194,8 @@ public sealed class DecisionMapperQuestionTests
         var choice = new QuestionSetDefinition(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("a", blank)));
         var score = new QuestionSetDefinition(QuestionDefinition.Score("level", "How bad?", blank, "High"));
 
-        Assert.Equal(("MIN209", "team"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(choice, Provider))));
-        Assert.Equal(("MIN209", "level"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(score, Provider))));
+        Assert.Equal(("MIN208", "team"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(choice, Provider))));
+        Assert.Equal(("MIN208", "level"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(score, Provider))));
     }
 
     [Theory]
@@ -206,7 +209,7 @@ public sealed class DecisionMapperQuestionTests
 
         var failure = SingleFailure(DecisionMapper.ToUpstreamQuestions(definition, Provider));
 
-        Assert.Equal(("MIN210", "spam"), Pair(failure));
+        Assert.Equal(("MIN209", "spam"), Pair(failure));
     }
 
     [Fact]
@@ -216,7 +219,7 @@ public sealed class DecisionMapperQuestionTests
 
         var failures = Failures(DecisionMapper.ToUpstreamQuestions(definition, Provider));
 
-        Assert.Equal([("MIN209", "spam"), ("MIN210", "spam")], failures.Select(Pair));
+        Assert.Equal([("MIN208", "spam"), ("MIN209", "spam")], failures.Select(Pair));
     }
 
     [Fact]
@@ -232,7 +235,7 @@ public sealed class DecisionMapperQuestionTests
     {
         var definition = new QuestionSetDefinition(QuestionDefinition.Score("level", "How bad?", "Only"));
 
-        Assert.Equal(("MIN211", "level"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(definition, Provider))));
+        Assert.Equal(("MIN210", "level"), Pair(SingleFailure(DecisionMapper.ToUpstreamQuestions(definition, Provider))));
     }
 
     [Fact]
@@ -278,7 +281,7 @@ public sealed class DecisionMapperQuestionTests
 
         Assert.True(result.IsFailure);
         Assert.Equal(
-            [("MIN206", null), ("MIN208", " "), ("MIN210", "spam"), ("MIN205", "team"), ("MIN208", "team"), ("MIN209", "team"), ("MIN211", "level")],
+            [("MIN206", null), ("MIN207", " "), ("MIN209", "spam"), ("MIN205", "team"), ("MIN207", "team"), ("MIN208", "team"), ("MIN210", "level")],
             result.Error.Failures.Select(Pair));
         Assert.Equal(result.Error.Failures[0].Message, result.Error.Message);
         Assert.All(result.Error.Failures, failure =>
@@ -341,7 +344,6 @@ public sealed class DecisionMapperQuestionTests
             .ToDictionary(cells => cells[0].Trim('|', ' ', '`'), cells => cells[3].TrimEnd('|', ' ').Trim('`'));
         QuestionSetDefinition[] sets =
         [
-            new(),
             new(QuestionDefinition.Noul(" ", "Is it spam?")),
             new(QuestionDefinition.Noul("spam", "Is it spam?", whenTrue: " ")),
             new(QuestionDefinition.Noul("spam", " ")),

@@ -371,15 +371,17 @@ public sealed class UpstreamDecisionClientTests
     // ---- Refusals before sending ----
 
     [Fact]
-    public async Task AnEmptyQuestionSet_IsUnsupported_AndNothingIsSent()
+    public async Task AnEmptyQuestionSet_IsAValidationError_AndNothingIsSent()
     {
-        using var upstream = new FakeUpstreamClient();
+        using var upstream = new FakeUpstreamClient { Metadata = new UpstreamMetadata("fake", supportedKinds: [DecisionKind.Binary]) };
         using var client = new UpstreamDecisionClient(upstream);
 
-        var error = (await client.EvaluateAsync(new MinosRequest(new QuestionSetDefinition(), "s"))).Error;
+        // As the chat client adapter does: Validation before any capability rule, even with images, and no failures.
+        var error = (await client.EvaluateAsync(new MinosRequest(new QuestionSetDefinition(), "s") { Images = [DecisionImage.FromBytes(new byte[] { 1 }, "image/png")] })).Error;
 
-        Assert.Equal(DecisionErrorKind.Unsupported, error.Kind);
-        Assert.Equal(("MIN207", (string?)null), (Assert.Single(error.Failures).Rule, error.Failures[0].QuestionKey));
+        Assert.Equal(DecisionErrorKind.Validation, error.Kind);
+        Assert.Equal("The request has no questions.", error.Message);
+        Assert.Empty(error.Failures);
         Assert.Empty(upstream.Requests);
     }
 
@@ -394,7 +396,7 @@ public sealed class UpstreamDecisionClientTests
         var error = (await client.EvaluateAsync(request)).Error;
 
         Assert.Equal(DecisionErrorKind.Unsupported, error.Kind);
-        Assert.Equal([("MIN206", null), ("MIN211", "level")], error.Failures.Select(f => (f.Rule, f.QuestionKey)));
+        Assert.Equal([("MIN206", null), ("MIN210", "level")], error.Failures.Select(f => (f.Rule, f.QuestionKey)));
         Assert.Equal(error.Failures[0].Message, error.Message);
         Assert.All(error.Failures, f => Assert.DoesNotContain(Secret, f.Message, StringComparison.Ordinal));
         Assert.Empty(upstream.Requests);
@@ -426,7 +428,7 @@ public sealed class UpstreamDecisionClientTests
         var error = (await client.EvaluateAsync(request)).Error;
 
         Assert.Equal(
-            [("MIN201", "urgent"), ("MIN201", "level"), ("MIN206", null), ("MIN211", "level")],
+            [("MIN201", "urgent"), ("MIN201", "level"), ("MIN206", null), ("MIN210", "level")],
             error.Failures.Select(f => (f.Rule, f.QuestionKey)));
         Assert.Empty(upstream.Requests);
     }

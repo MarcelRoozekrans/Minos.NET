@@ -22,12 +22,13 @@ namespace Minos.Extensions.AI.Decisions;
 /// <remarks>
 /// <para>
 /// A request is converted as the page says: the questions to upstream questions, the state to JSON, the model to
-/// <see cref="DecisionOptions.ModelId"/>. The retry attempt and the deadline are dropped. A request the page refuses is
-/// not sent: it returns <see cref="DecisionErrorKind.Unsupported"/> with one <see cref="QuestionFailure"/> per problem,
-/// in the order a native Minos client uses, generic capability rules first: MIN207 for an empty set, then MIN201 for
-/// each question whose kind is outside the upstream <see cref="UpstreamMetadata.SupportedKinds"/> in question order,
-/// then MIN206 for images, then each question's MIN205 and MIN208 to MIN211 in question order. Its message is the first
-/// failure's.
+/// <see cref="DecisionOptions.ModelId"/>. The retry attempt and the deadline are dropped. A request with no questions is
+/// not sent: it returns <see cref="DecisionErrorKind.Validation"/>, as the chat client adapter does. A request the page
+/// refuses is not sent either: it returns <see cref="DecisionErrorKind.Unsupported"/> with one
+/// <see cref="QuestionFailure"/> per problem, in the order a native Minos client uses, generic capability rules first:
+/// MIN201 for each question whose kind is outside the upstream <see cref="UpstreamMetadata.SupportedKinds"/> in question
+/// order, then MIN206 for images, then each question's MIN205 and MIN207 to MIN210 in question order. Its message is the
+/// first failure's.
 /// </para>
 /// <para>
 /// The upstream response must carry the state and the questions that were sent; otherwise the call returns
