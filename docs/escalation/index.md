@@ -32,8 +32,9 @@ stronger first decider catches it.
 ## The triage result
 
 The triage run sent 400 tickets through a local model, with escalation to a hosted one. Each ticket carried three
-questions, so the run answered 1,200 questions. The traffic was replayed from the Banking77 set, not taken from
-production. The report gives figures and no verdict, and so does this page.
+questions: one Choice question, which picks one option from several, and two Noul questions, which are yes/no. So the
+run answered 1,200 questions. The traffic was replayed from the Banking77 set, not taken from production. The report
+gives figures and no verdict, and so does this page.
 
 | Measure | Value |
 | --- | --- |
@@ -46,8 +47,10 @@ production. The report gives figures and no verdict, and so does this page.
 | Cost per 1,000 tickets | 0.00597733 |
 
 The two accuracies are taken over the 1,200 questions. The target was right on 79 of the 106 escalated questions. Of
-those 106 questions, 10 fixed (a wrong local answer, a right final one) and 5 broken (a right local answer, a wrong
-final one). The other 91 kept the same result: 69 right both times and 22 wrong both times. The local answer was confident on 1094 of the 1200 questions, and those kept it.
+those 106 questions, 10 were fixed (a wrong local answer, a right final one) and 5 were broken (a right local answer, a
+wrong final one). The other 91 kept the same result: 69 right both times and 22 wrong both times. The local answer was
+confident on 1,094 of the 1,200 questions, and those kept it. The 106 questions were asked in 104 target calls, since
+a ticket with two unsure questions needs one call.
 
 The cost is the report's figure for 1,000 tickets, in the currency of the prices and reported costs. The report names no
 currency. It prices the local model at 0 and the hosted model per million tokens, so the figure counts the hosted calls
@@ -70,8 +73,9 @@ The run showed three things that decide this. They are findings of one run on on
 - **A local call that eats the budget leaves the target no time.** The budget counts the local call first. A slow local
   decider and a small budget give the same result as no escalation, quietly.
 
-Escalation also costs a second call for each ticket with an unsure question (104 of the 400 tickets here), and the escalated answer replaces the first one even when
-the target is less sure. Measure both on your own labelled data before you rely on either.
+Escalation also costs a second call for each ticket with an unsure question (104 of the 400 tickets here), and the
+escalated answer replaces the first one even when the target is less sure. Measure both on your own labelled data
+before you rely on either.
 
 ## A map of the recipes
 

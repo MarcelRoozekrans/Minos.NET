@@ -280,9 +280,9 @@ public sealed partial class EscalationPageTests
         { "accuracy.all.localAlone.rate", "rate", "| Local answer alone | 0.9267 |" },
         { "accuracy.all.final.rate", "rate", "| Final answer | 0.9308 |" },
         { "accuracy.all.target.rate", "rate", "| Target, on the 106 escalated questions | 0.7453 |" },
-        { "escalated.all.fixed", "integer", "10 fixed" },
-        { "escalated.all.broken", "integer", "5 broken" },
-        { "split.all.confident", "integer", "1094 of the 1200 questions" },
+        { "escalated.all.fixed", "integer", "10 were fixed" },
+        { "escalated.all.broken", "integer", "5 were broken" },
+        { "split.all.confident", "integer", "1,094 of the 1,200 questions" },
         { "cost.perThousandTickets", "cost", "| Cost per 1,000 tickets | 0.00597733 |" },
     };
 
@@ -298,7 +298,7 @@ public sealed partial class EscalationPageTests
             _ => value.GetValue<int>().ToString(CultureInfo.InvariantCulture),
         };
 
-        Assert.Contains(text, expected, StringComparison.Ordinal);
+        Assert.Contains(text, expected.Replace(",", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains(expected, EscalationReport.PageText("index"), StringComparison.Ordinal);
     }
 
@@ -307,13 +307,51 @@ public sealed partial class EscalationPageTests
     {
         var report = EscalationReport.Triage;
         var page = EscalationReport.PageText("index");
+        var text = string.Join(' ', page.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
 
         Assert.Equal(400, EscalationReport.Resolve(report, "accuracy.choice.localAlone.total").GetValue<int>());
         Assert.Equal(1200, EscalationReport.Resolve(report, "accuracy.all.localAlone.total").GetValue<int>());
         Assert.Equal(106, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>());
+        Assert.Equal(79, EscalationReport.Resolve(report, "accuracy.all.target.correct").GetValue<int>());
+        Assert.Equal(69, EscalationReport.Resolve(report, "escalated.all.bothRight").GetValue<int>());
+        Assert.Equal(22, EscalationReport.Resolve(report, "escalated.all.bothWrong").GetValue<int>());
+        Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
+        Assert.Equal(91, 106 - EscalationReport.Resolve(report, "escalated.all.fixed").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.broken").GetValue<int>());
         Assert.Contains("| Tickets | 400 |", page, StringComparison.Ordinal);
         Assert.Contains("| Questions | 1,200 |", page, StringComparison.Ordinal);
         Assert.Contains("| Questions escalated | 106 |", page, StringComparison.Ordinal);
+        Assert.Contains("right on 79 of the 106 escalated questions", text, StringComparison.Ordinal);
+        Assert.Contains("The other 91 kept the same result: 69 right both times and 22 wrong both times", text, StringComparison.Ordinal);
+        Assert.Contains("in 104 target calls", text, StringComparison.Ordinal);
+        Assert.Contains("(104 of the 400 tickets here)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexSignalFigures_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        int Wrong(string kind) => EscalationReport.Resolve(report, $"accuracy.{kind}.localAlone.total").GetValue<int>() - EscalationReport.Resolve(report, $"accuracy.{kind}.localAlone.correct").GetValue<int>();
+        Assert.Equal(51, Wrong("noul"));
+        Assert.Equal(1, EscalationReport.Resolve(report, "signal.noul.wrongCaught").GetValue<int>());
+        Assert.Equal(800, EscalationReport.Resolve(report, "accuracy.noul.localAlone.total").GetValue<int>());
+        Assert.Equal(37, Wrong("choice"));
+        Assert.Equal(31, EscalationReport.Resolve(report, "signal.choice.wrongCaught").GetValue<int>());
+        Assert.Equal(400, EscalationReport.Resolve(report, "accuracy.choice.localAlone.total").GetValue<int>());
+        Assert.Contains("wrong on 51 of the 800 Noul questions, and the threshold caught 1 of them", text, StringComparison.Ordinal);
+        Assert.Contains("For the 400 Choice questions it caught 31 of the 37 wrong answers", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexFirstRun_IsQuotedFromTheReadme()
+    {
+        var readme = string.Join(' ', EscalationReport.TriageReadme.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("median of 5.5 s", readme, StringComparison.Ordinal);
+        Assert.Contains("median of 5.5 s", text, StringComparison.Ordinal);
+        Assert.Contains("All 106 questions below their threshold ended as `NoTimeLeft`", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -327,15 +365,16 @@ public sealed partial class EscalationPageTests
     }
 
     [Theory]
-    [InlineData("patterns/confidence-routing.md")]
-    [InlineData("patterns/index.md")]
-    [InlineData("pipeline.md")]
-    [InlineData("samples.md")]
-    public void TheExistingPages_LinkToTheGuide(string page)
+    [InlineData("patterns/confidence-routing.md", "(../escalation/index.md)")]
+    [InlineData("patterns/index.md", "(../escalation/index.md)")]
+    [InlineData("pipeline.md", "(escalation/index.md)")]
+    [InlineData("pipeline.md", "(escalation/fallback.md)")]
+    [InlineData("samples.md", "(escalation/index.md)")]
+    public void TheExistingPages_LinkToTheGuide(string page, string link)
     {
         var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", page));
 
-        Assert.Contains("escalation/", text, StringComparison.Ordinal);
+        Assert.Contains(link, text, StringComparison.Ordinal);
     }
 
     [Fact]
