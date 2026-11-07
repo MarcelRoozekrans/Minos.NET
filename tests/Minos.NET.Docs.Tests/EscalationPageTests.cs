@@ -76,6 +76,20 @@ public sealed partial class EscalationPageTests
     }
 
     [Fact]
+    public void TheSweepEstimate_AndTheTriageCount_AreTheReports()
+    {
+        var sweep = EscalationReport.Calibration["choice"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.85) < 1e-9)!;
+        var below = 400 - sweep["covered"]!.GetValue<int>();
+        var escalated = EscalationReport.Resolve(EscalationReport.Triage, "split.choice.escalated").GetValue<int>();
+        var page = EscalationReport.PageText("thresholds");
+
+        Assert.Equal(72, below);
+        Assert.Equal(101, escalated);
+        Assert.Contains("The other 72 questions", page, StringComparison.Ordinal);
+        Assert.Contains("escalated 101 of the 400 Choice questions at 0.85, not 72", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheThresholdsInTheSnippet_AreTheReportsConfig()
     {
         var line = EscalationReport.TriageReadme.Split('\n').Single(l => l.StartsWith("Thresholds:", StringComparison.Ordinal));

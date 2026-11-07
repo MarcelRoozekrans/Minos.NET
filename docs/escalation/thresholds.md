@@ -30,10 +30,11 @@ what an escalation costs.
 
 - A question whose wrong answer is cheap can keep the default, or a lower threshold.
 - A question whose wrong answer is costly gets a higher threshold, so fewer wrong answers stay with the cheap decider.
-  Each point you add escalates more questions.
+  A higher threshold escalates more questions.
 
 If your app already acts only above a floor of its own, keep the escalation threshold at or above that floor. Then
-a question that escalation keeps is also one the app can act on, and the two gates do not both stop the same answers.
+an answer that stays with the cheap decider is already above the app's floor, and the two gates do not both stop the
+same answers. With the threshold below the floor, an answer between the two would be kept but not acted on.
 [Confidence routing](../patterns/confidence-routing.md#the-gates) shows the floor of each action.
 
 ## One threshold per question key
@@ -86,14 +87,15 @@ The columns mean:
 - **Accuracy** is the share of the covered answers that were right: 0.9787.
 
 At 0.85 the local model keeps 328 of the 400 Choice questions and gets 0.9787 of those right. The other 72 questions
-are the ones escalation would ask again. Move the threshold up and the accuracy of what stays rises, while coverage falls,
+are the ones escalation would ask again, about. The triage run below was a separate run of the local model. It
+escalated 101 of the 400 Choice questions at 0.85, not 72, so read the sweep as an estimate. Move the threshold up and the accuracy of what stays rises, while coverage falls,
 and with it the share of questions the cheap decider answers.
 
 ## What confidence caught in the triage run
 
 The triage run sent the 400 Banking77 tickets through the local model, with escalation to a hosted one. Each ticket had
 three questions: one Choice and two Noul, so the run decided 400 Choice questions and 800 Noul questions. The run used the
-thresholds in the snippet above.
+three per-key thresholds in the snippet above.
 
 The local model alone got 37 of the 400 Choice questions wrong and 51 of the 800 Noul questions wrong. The threshold
 caught the Choice errors much better than the Noul ones:
@@ -104,8 +106,8 @@ caught the Choice errors much better than the Noul ones:
 | Noul | 51 | 1 | 50 |
 
 So 31 of the 37 wrong Choice answers were escalated, and 6 slipped through. Only 1 of the 51 wrong Noul answers
-was, and 50 slipped through. A wrong Noul answer is mostly a sure one. A Noul threshold of 0.80 escalated 5 of the 800 Noul questions, and that
-buys almost nothing.
+was, and 50 slipped through. A wrong Noul answer is mostly a sure one. A Noul threshold of 0.80
+escalated 5 of the 800 Noul questions, so it helps little.
 
 A threshold only helps where confidence tracks error. Check it on the sweep before you pay for the escalation: if
 the accuracy of the covered answers hardly rises as the threshold rises, a higher threshold only escalates more.
