@@ -59,6 +59,14 @@ limit you set in `Capabilities` applies on every provider. The capabilities you 
 images and, for the System One presets, the model listing the client checks. While model listing is off, a model-listing
 call returns the `Unsupported` kind.
 
+Four rules belong to none of these columns. They are what an
+[upstream decision client](extensions-ai-decisions/mapping.md) from Microsoft.Extensions.AI cannot take: MIN207 for a
+blank key, MIN208 for a blank description, MIN209 for a Noul with blank instructions and no pair of descriptions, and
+MIN210 for a one-level Score. The adapter over such a client, which is in the repository and built but not published until Phase 11.3, checks them
+before sending, together with MIN205
+and MIN206. It refuses a set with no questions too, with a `Validation` error and no rule, as the chat client adapter
+does.
+
 ## The presets
 
 | Provider | Base address | Path | Key | Default model |
@@ -402,18 +410,24 @@ A typed call, or a call with a [question set built at run time](question-sets-at
 is sent. A set that breaks a capability returns a `DecisionError` of kind `Unsupported`, and `Failures` lists every
 problem it found. Each is a `QuestionFailure` with a rule id, the key of the question and a message:
 
-| Rule | Failure | `QuestionKey` | Message, for `Custom` or `OpenAI` |
+| Rule | Failure | `QuestionKey` | Message, for `Custom`, `OpenAI` or an upstream client named `Upstream` |
 | --- | --- | --- | --- |
 | `MIN201` | The set has a question of a kind the provider does not accept. | the question | `Custom does not support Choice questions.` |
 | `MIN202` | The set has more questions than `MaxQuestions`. | none | `Custom accepts at most 1 question per request; the set has 2.` |
 | `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
 | `MIN204` | A Noul has `WhenTrue` or `WhenFalse`, on OpenAI. | the question | `OpenAI does not support WhenTrue or WhenFalse on a Noul; put the meaning in the instructions.` |
-| `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
+| `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI or an upstream decision client. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
 | `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
+| `MIN207` | A question key or a Choice option key is white space only, on an upstream decision client. | the question | `Upstream does not accept a question or option key that is white space only.` |
+| `MIN208` | A Noul's `WhenTrue` or `WhenFalse`, or a text criterion, is empty or white space only, on an upstream decision client. | the question | `Upstream does not accept a description that is empty or white space only.` |
+| `MIN209` | A Noul's instructions are blank text and it lacks `WhenTrue` or `WhenFalse`, on an upstream decision client. | the question | `Upstream needs a Noul's instructions, or both WhenTrue and WhenFalse, to be more than white space.` |
+| `MIN210` | A Score question has one level, on an upstream decision client. | the question | `Upstream needs at least two levels on a Score question.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
-order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The MIN2 series is for these
-provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
+order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The adapter over an upstream
+decision client follows the same order, generic rules first: each question's `MIN201` in the order it is sent, then
+`MIN206`, then each question's `MIN205` and `MIN207` to `MIN210` in the order it is sent. The MIN2 series
+is for these provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
 MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
 [diagnostics](diagnostics.md) lists them.
 

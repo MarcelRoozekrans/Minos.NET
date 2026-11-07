@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\tools\upstream\UpstreamDecisions.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Minos.Extensions.AI.Decisions.Tests</RootNamespace>
+    <!-- The tests call the experimental upstream decision types and the adapter, both marked MEAI001: opting in to an
+         experimental API is what the diagnostic asks of a caller. -->
+    <NoWarn>$(NoWarn);MEAI001</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI.Decisions\Minos.NET.Extensions.AI.Decisions.csproj" />
+    <!-- The conformance suite runs against both adapters. It references only the core, never the upstream package. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
+  </ItemGroup>
+
+  <!--
+    The adapter project references the upstream assembly with Private false, so this project references it too and the
+    test run gets a copy beside the test assembly. It must not also come from the Microsoft.Extensions.AI.Abstractions
+    package: the two share an assembly name. This project references no package that depends on that package.
+  -->
+  <ItemGroup Condition="'$(MinosUpstreamAbstractionsPath)' != ''">
+    <Reference Include="Microsoft.Extensions.AI.Abstractions">
+      <HintPath>$(MinosUpstreamAbstractionsPath)</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

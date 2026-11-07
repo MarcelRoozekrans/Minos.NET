@@ -132,7 +132,7 @@ public sealed partial class DiagnosticsTests
         var ids = DiagnosticIdSource.ProviderRules();
         var rows = PageTables.Rows(Page, "Reported by the client");
 
-        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids);
+        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206", "MIN207", "MIN208", "MIN209", "MIN210"], ids);
         Assert.Equal(ids, rows.Select(row => row[0]));
         Assert.DoesNotContain(Descriptors(), rule => rule.Id.StartsWith("MIN2", StringComparison.Ordinal));
     }

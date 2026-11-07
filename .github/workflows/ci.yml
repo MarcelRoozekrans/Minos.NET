@@ -242,7 +242,7 @@ jobs:
         run: dotnet pack Minos.NET.slnx -c Release -p:MinosRelease=true -o artifacts/packages
 
       - name: Test the inspection script
-        run: python3 -m unittest discover -s tools/release -p "test_inspect_packages.py"
+        run: python3 -m unittest discover -s tools/release -p "test_*.py"
 
       - name: Inspect the packages
         run: python3 tools/release/inspect_packages.py artifacts/packages "$PACKAGE_VERSION"

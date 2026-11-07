@@ -12,7 +12,7 @@ public sealed class WorkflowWiringTests
         var job = Job(Ci, "pack-validate");
 
         Assert.Contains("dotnet pack Minos.NET.slnx -c Release -p:MinosRelease=true -o artifacts/packages", job, StringComparison.Ordinal);
-        Assert.Contains("python3 -m unittest discover -s tools/release -p \"test_inspect_packages.py\"", job, StringComparison.Ordinal);
+        Assert.Contains("python3 -m unittest discover -s tools/release -p \"test_*.py\"", job, StringComparison.Ordinal);
         Assert.Contains("python3 tools/release/inspect_packages.py artifacts/packages \"$PACKAGE_VERSION\"", job, StringComparison.Ordinal);
         Assert.Contains("dotnet nuget push \"artifacts/packages/*.nupkg\" --source \"$feed\" --skip-duplicate", job, StringComparison.Ordinal);
     }

@@ -1,0 +1,20 @@
+#nullable enable
+[MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient
+[MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.Dispose() -> void
+[MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+[MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+[MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.UpstreamDecisionClient(Microsoft.Extensions.AI.IDecisionClient! innerClient) -> void
+[MEAI001]Minos.Extensions.AI.Decisions.DecisionClientAdapterExtensions
+[MEAI001]static Minos.Extensions.AI.Decisions.DecisionClientAdapterExtensions.AsMinosDecisionClient(this Microsoft.Extensions.AI.IDecisionClient! client) -> Minos.Extensions.AI.Decisions.UpstreamDecisionClient!
+[MEAI001]static Minos.Extensions.AI.Decisions.DecisionClientAdapterExtensions.AsUpstreamDecisionClient(this Minos.IDecisionClient! client) -> Minos.Extensions.AI.Decisions.MinosDecisionClient!
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionClient
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionClient.Dispose() -> void
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionClient.GetResponseAsync(Microsoft.Extensions.AI.DecisionRequest! request, Microsoft.Extensions.AI.DecisionOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Microsoft.Extensions.AI.DecisionResponse!>!
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionClient.MinosDecisionClient(Minos.IDecisionClient! innerClient) -> void
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException.Error.get -> Minos.DecisionError?
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException.MinosDecisionException() -> void
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException.MinosDecisionException(Minos.DecisionError! error) -> void
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException.MinosDecisionException(string! message) -> void
+[MEAI001]Minos.Extensions.AI.Decisions.MinosDecisionException.MinosDecisionException(string! message, System.Exception? innerException) -> void

@@ -2,7 +2,7 @@
 id: extensions-ai-decisions
 title: Microsoft.Extensions.AI decisions
 sidebar_position: 1
-description: How Minos relates to the experimental decision abstractions proposed for Microsoft.Extensions.AI, which commit the comparison was checked against, and what the planned adapter package will do.
+description: How Minos relates to the experimental decision abstractions proposed for Microsoft.Extensions.AI, which commit the comparison was checked against, and what the adapter package does.
 ---
 
 # Microsoft.Extensions.AI decisions
@@ -26,16 +26,18 @@ was checked. The script `tools/upstream/build-decisions.sh` clones that commit a
 mapping page names an upstream type or member it does not have. Moving to a newer commit is a deliberate change to the pin
 file, and the mapping is checked again when it moves.
 
-## The planned package
+## The adapter package
 
-`Minos.NET.Extensions.AI.Decisions` will hold two adapters, planned for Phase 11.2:
+`Minos.NET.Extensions.AI.Decisions` holds two adapters:
 
 - a Minos `IDecisionClient` over an upstream client, so the Minos pipeline (retry, escalation, fallback, caching,
   recording) can run over any upstream provider;
 - an upstream `IDecisionClient` over a Minos client, so code written against the upstream API can use a Minos provider or
   a whole Minos pipeline.
 
-The package is not published. It will not be published while the upstream API has no released package.
+The adapters are in the repository and built, but not published until Phase 11.3, which waits for a released upstream
+package. They build only against the upstream assembly from `tools/upstream/build-decisions.sh`, in the `Decisions`
+configuration; [the project README](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/src/Minos.NET.Extensions.AI.Decisions/README.md) gives the commands.
 
 It is a different package from `Minos.NET.Extensions.AI`, which asks a Microsoft.Extensions.AI chat client
 (`IChatClient`) decision questions. [Chat clients](../chat-clients.md) describes that one.

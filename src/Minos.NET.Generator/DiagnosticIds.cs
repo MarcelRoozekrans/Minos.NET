@@ -53,6 +53,22 @@ internal static class DiagnosticIds
     /// </summary>
     public const string ImagesUnsupported = "MIN206";
 
+    // MIN207 to MIN210: what an upstream Microsoft.Extensions.AI decision client cannot take, which the adapter over it
+    // checks before sending. Run-time provider rules with no analyzer, like MIN201 to MIN203. An empty set is not one of
+    // them: the adapter returns Validation for it, as the chat client adapter does.
+
+    /// <summary>A question key or a Choice option key is white space only, which the provider refuses as an id.</summary>
+    public const string BlankId = "MIN207";
+
+    /// <summary>A Noul's <c>WhenTrue</c> or <c>WhenFalse</c>, or a text criterion, is empty or white space only.</summary>
+    public const string BlankDescription = "MIN208";
+
+    /// <summary>A Noul's instructions are blank text and it lacks <c>WhenTrue</c> or <c>WhenFalse</c>.</summary>
+    public const string NoulWithoutInstructions = "MIN209";
+
+    /// <summary>A Score question has one level, and the provider requires at least two.</summary>
+    public const string SingleLevelScore = "MIN210";
+
     /// <summary>Whether a diagnostic with <paramref name="id"/> is advice only: the set is still valid and generated.</summary>
     public static bool IsAdvisory(string id)
         => id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriterion;
