@@ -4,8 +4,10 @@ name: Upstream decisions
 # the mapping page test against that build, so every upstream name the page cites is checked as public in the pinned
 # source. The types are not on NuGet, so the test is skipped when MINOS_UPSTREAM_ABSTRACTIONS is unset; this job fails
 # when that test did not run and pass. Runs on every push to main, and on pull requests touching the page, the pin, the
-# build script, the tests or the adapter project. The job also builds the unpacked adapter project and its tests in the
-# Decisions configuration, checks its trim and AOT surface and runs its tests. Not a required check and not in the Main ruleset.
+# build script, the tests, the adapter project or the Minos code it builds on. The job also builds the unpacked adapter
+# project and its tests in the Decisions configuration and runs its tests. That build is also the trim and AOT check: the
+# project sets IsAotCompatible and the repository treats warnings as errors, so an IL2xxx or IL3xxx diagnostic fails it.
+# Not a required check and not in the Main ruleset.
 on:
   push:
     branches: [ main ]
@@ -17,6 +19,9 @@ on:
       - 'tests/Minos.NET.Docs.Tests/**'
       - 'src/Minos.NET.Extensions.AI.Decisions/**'
       - 'tests/Minos.NET.Extensions.AI.Decisions.Tests/**'
+      - 'src/Minos.NET/**'
+      - 'src/Minos.NET.Conformance/**'
+      - 'src/Minos.NET.Generator/DiagnosticIds.cs'
       - 'Minos.NET.slnx'
       - 'global.json'
       - 'Directory.Build.props'
@@ -64,14 +69,11 @@ jobs:
           path: artifacts/upstream
           key: upstream-decisions-${{ runner.os }}-${{ hashFiles('tools/upstream/decisions-pin.json', 'tools/upstream/build-decisions.sh') }}
 
+      # Also the trim and AOT check: the adapter project sets IsAotCompatible, which turns on the trim and AOT analyzers,
+      # and TreatWarningsAsErrors makes any IL2xxx or IL3xxx diagnostic fail this step. The upstream assembly is a
+      # compile-time reference only, so the check covers the adapters' own code.
       - name: Build the decisions adapters
         run: dotnet build Minos.NET.slnx -c Decisions
-
-      # The adapter project sets IsAotCompatible, which turns on the trim and AOT analyzers. Rebuilding without
-      # incremental reuse with warnings as errors makes any IL2xxx or IL3xxx diagnostic fail the job. The upstream
-      # assembly is a compile-time reference only, so the check covers the adapters' own code.
-      - name: Trim and AOT analysis of the decisions adapters
-        run: dotnet build src/Minos.NET.Extensions.AI.Decisions/Minos.NET.Extensions.AI.Decisions.csproj -c Decisions --no-incremental -warnaserror
 
       - name: Decisions adapter tests
         run: dotnet test tests/Minos.NET.Extensions.AI.Decisions.Tests -c Decisions --no-build
