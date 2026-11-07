@@ -31,5 +31,55 @@ expect "assembly without the type" 1 "$runtime_dir/System.Private.CoreLib.dll"
 # Unreadable input is an error, never "none".
 expect "missing file is an error" 2 "$root/artifacts/does-not-exist.dll"
 
+# --- The version loop, against a stub feed (the FIND_DECISIONS_FEED test hook, file:// URLs). ---
+tmp="$(mktemp -d "$root/artifacts/test-find.XXXXXX")"
+trap 'rm -rf "$tmp"' EXIT
+id=microsoft.extensions.ai.abstractions
+# feed <name> <version>: a feed with one version; the caller fills $tmp/<name>/<version>/<id>.<version>.nupkg.
+feed() {
+  mkdir -p "$tmp/$1/$2"
+  printf '{"versions":["10.11.0","%s"]}' "$2" > "$tmp/$1/index.json"
+}
+# run_gate <name> <expected exit code> [expected stdout]: runs the gate with the stub feed.
+run_gate() {
+  local name="$1" want="$2" want_out="${3-}" got=0 out
+  out="$(FIND_DECISIONS_FEED="file://$tmp/$name" "$script" 2>/dev/null)" || got=$?
+  if [ "$got" -eq "$want" ] && [ "$out" = "$want_out" ]; then echo "ok   gate: $name"; else echo "FAIL gate: $name: want exit $want and '$want_out', got $got and '$out'"; failures=$((failures + 1)); fi
+}
+
+mkdir -p "$tmp/pkg/lib/net10.0"
+cp "$upstream" "$tmp/pkg/lib/net10.0/Microsoft.Extensions.AI.Abstractions.dll"
+feed good 10.12.0
+(cd "$tmp/pkg" && python3 -I -m zipfile -c "$tmp/good/10.12.0/$id.10.12.0.nupkg" lib)
+run_gate good 0 10.12.0
+
+feed corrupt 10.12.0
+echo "not a zip" > "$tmp/corrupt/10.12.0/$id.10.12.0.nupkg"
+run_gate corrupt 2
+
+feed nodll 10.12.0
+mkdir -p "$tmp/other" && echo x > "$tmp/other/readme.txt"
+(cd "$tmp/other" && python3 -I -m zipfile -c "$tmp/nodll/10.12.0/$id.10.12.0.nupkg" readme.txt)
+run_gate nodll 2
+
+feed missing 10.12.0
+run_gate missing 2
+
+# A newer version that only lacks the type is a plain "none".
+feed notype 10.12.0
+mkdir -p "$tmp/core/lib/net10.0"
+cp "$runtime_dir/System.Private.CoreLib.dll" "$tmp/core/lib/net10.0/Microsoft.Extensions.AI.Abstractions.dll"
+(cd "$tmp/core" && python3 -I -m zipfile -c "$tmp/notype/10.12.0/$id.10.12.0.nupkg" lib)
+run_gate notype 1
+
+# A failing type-check helper (build error) must be an error, never "absent".
+echo 'this is not C#' > "$tmp/Broken.cs"
+got=0
+FIND_DECISIONS_HASTYPE="$tmp/Broken.cs" FIND_DECISIONS_FEED="file://$tmp/good" "$script" >/dev/null 2>&1 || got=$?
+if [ "$got" -eq 2 ]; then echo "ok   gate: failing helper build is an error"; else echo "FAIL gate: failing helper build: want exit 2, got $got"; failures=$((failures + 1)); fi
+got=0
+FIND_DECISIONS_HASTYPE="$tmp/Broken.cs" "$script" --check "$upstream" >/dev/null 2>&1 || got=$?
+if [ "$got" -eq 2 ]; then echo "ok   check: failing helper build is an error"; else echo "FAIL check: failing helper build: want exit 2, got $got"; failures=$((failures + 1)); fi
+
 [ "$failures" -eq 0 ] && echo "all passed"
 exit "$failures"

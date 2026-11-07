@@ -16,20 +16,25 @@ readonly package_id="microsoft.extensions.ai.abstractions"
 readonly dll_name="Microsoft.Extensions.AI.Abstractions.dll"
 readonly default_type="Microsoft.Extensions.AI.IDecisionClient"
 readonly baseline="10.11.0"
-readonly feed="https://api.nuget.org/v3-flatcontainer/$package_id"
+# FIND_DECISIONS_FEED is a test hook: a file:// or http base laid out like the flat container.
+readonly feed="${FIND_DECISIONS_FEED:-https://api.nuget.org/v3-flatcontainer/$package_id}"
 
 err() { echo "find-decisions-package: $*" >&2; exit 2; }
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 export MSBUILDDISABLENODEREUSE=1 DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 
-# has_type <dll> <type>: 0 public type present, 1 absent, other = error (mapped to 2).
+# has_type <dll> <type>: 0 public type present, 1 absent. Only a definite FOUND or ABSENT
+# line from a clean run is an answer; a build, restore or run failure ends the script with
+# exit 2, so an outage can never read as "absent".
 has_type() {
-  local rc=0
-  (cd "$root" && dotnet run tools/upstream/HasType.cs -- "$1" "$2") >/dev/null || rc=$?
-  case "$rc" in
-    0 | 1) return "$rc" ;;
-    *) err "type check failed on $1 (exit $rc)" ;;
+  local rc=0 out
+  out="$(cd "$root" && dotnet run "${FIND_DECISIONS_HASTYPE:-tools/upstream/HasType.cs}" -- "$1" "$2" 2>/dev/null)" || rc=$?
+  [ "$rc" -eq 0 ] || err "type check failed on $1 (exit $rc)"
+  case "$(printf '%s\n' "$out" | tail -1)" in
+    FOUND) return 0 ;;
+    ABSENT) return 1 ;;
+    *) err "type check gave no answer on $1" ;;
   esac
 }
 
@@ -71,9 +76,10 @@ while IFS= read -r version; do
   curl -fsS --retry 3 --retry-delay 2 --max-time 300 -o "$dir/pkg.nupkg" \
     "$feed/$lower/$package_id.$lower.nupkg" || err "cannot download $version"
   # Extract only the library assemblies, one list entry per line.
-  entries="$(unzip -Z1 "$dir/pkg.nupkg" 'lib/*' | grep -F "/$dll_name" || true)"
+  listing="$(unzip -Z1 "$dir/pkg.nupkg")" || err "$version is not a readable package"
+  entries="$(printf '%s\n' "$listing" | grep -E "^lib/[^/]+/$dll_name\$" || true)"
+  [ -n "$entries" ] || err "$version has no lib/*/$dll_name"
   while IFS= read -r entry; do
-    [ -n "$entry" ] || continue
     mkdir -p "$dir/$(dirname "$entry")"
     unzip -q -o -j "$dir/pkg.nupkg" "$entry" -d "$dir/$(dirname "$entry")" || err "cannot extract $entry from $version"
     if has_type "$dir/$entry" "$default_type"; then
