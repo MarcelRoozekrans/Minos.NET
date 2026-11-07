@@ -1,0 +1,89 @@
+name: Upstream decisions
+
+# Builds the pinned upstream Microsoft.Extensions.AI decision abstractions with tools/upstream/build-decisions.sh and runs
+# the mapping page test against that build, so every upstream name the page cites is checked as public in the pinned
+# source. The types are not on NuGet, so the test is skipped when MINOS_UPSTREAM_ABSTRACTIONS is unset; this job fails
+# when that test did not run and pass. Runs on every push to main, and on pull requests touching the page, the pin, the
+# build script or the tests. Not a required check and not in the Main ruleset.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'docs/extensions-ai-decisions/**'
+      - 'tools/upstream/**'
+      - 'tests/Minos.NET.Docs.Tests/**'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - '.github/workflows/upstream-decisions.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  upstream-decisions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # The build runs from the repo root, so the SDK comes from this repo's global.json (10.0.403, latestMinor),
+      # not from upstream's 10.0.401 pin.
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Restore the upstream build
+        id: cache
+        uses: actions/cache/restore@v6
+        with:
+          path: artifacts/upstream
+          key: upstream-decisions-${{ runner.os }}-${{ hashFiles('tools/upstream/decisions-pin.json', 'tools/upstream/build-decisions.sh') }}
+
+      - name: Build the pinned upstream abstractions
+        run: bash tools/upstream/build-decisions.sh
+
+      - name: Save the upstream build
+        if: always() && steps.cache.outputs.cache-hit != 'true' && hashFiles('artifacts/upstream/abstractions.path') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: artifacts/upstream
+          key: upstream-decisions-${{ runner.os }}-${{ hashFiles('tools/upstream/decisions-pin.json', 'tools/upstream/build-decisions.sh') }}
+
+      - name: Decision mapping tests
+        run: |
+          set -euo pipefail
+          path="$(cat artifacts/upstream/abstractions.path)"
+          [ -f "$path" ] || { echo "::error::abstractions.path names a missing file: $path"; exit 1; }
+          rm -rf "$RUNNER_TEMP/trx"
+          MINOS_UPSTREAM_ABSTRACTIONS="$path" dotnet test tests/Minos.NET.Docs.Tests -c Release --filter "FullyQualifiedName~ExtensionsAiDecisionsMapping" --logger "trx;LogFileName=mapping.trx" --results-directory "$RUNNER_TEMP/trx" --logger "console;verbosity=normal"
+
+      # A skipped xUnit test is reported as NotExecuted and does not fail dotnet test, so check the results file: the
+      # upstream check must have run and passed, and nothing in the filter may have been skipped.
+      - name: Fail if the upstream check was skipped
+        run: |
+          python3 -I - "$RUNNER_TEMP/trx/mapping.trx" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+
+          results = [e for e in ET.parse(sys.argv[1]).iter() if e.tag.endswith("UnitTestResult")]
+          skipped = [e.get("testName") for e in results if e.get("outcome") == "NotExecuted"]
+          upstream = [e for e in results if "Upstream_identifiers_are_public_in_the_pinned_build" in (e.get("testName") or "")]
+          if skipped:
+              print("::error::Skipped tests: " + ", ".join(skipped))
+              sys.exit(1)
+          if not any(e.get("outcome") == "Passed" for e in upstream):
+              print("::error::The upstream check did not run and pass")
+              sys.exit(1)
+          print("The upstream check ran and passed; " + str(len(results)) + " tests, none skipped.")
+          PY

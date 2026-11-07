@@ -154,6 +154,8 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): seven runnable cookbook samples. Five run offline: four replay recorded Jev answers, one of them against three providers chosen by configuration, and one runs over a chat client. The sixth replays a dataset through shadow mode and the seventh measures escalation on labelled tickets; both are billed.
 - [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 - [Conformance](https://marcelroozekrans.github.io/Minos.NET/conformance): the suite that checks any decision endpoint's shapes, probabilities, errors and models, and how to run it against your own.
+- [Microsoft.Extensions.AI decisions](https://marcelroozekrans.github.io/Minos.NET/extensions-ai-decisions): how Minos relates to the experimental, unreleased decision abstractions proposed for Microsoft.Extensions.AI, the upstream commit they were checked against, and the planned adapter package.
+- [Mapping the Minos decision types](https://marcelroozekrans.github.io/Minos.NET/extensions-ai-decisions/mapping): each Minos decision type next to its upstream counterpart, with how well it fits and what an adapter does.
 
 ## Samples
 
