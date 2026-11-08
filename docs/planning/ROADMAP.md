@@ -571,11 +571,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-07-phase-11.2-adapters.md`
 
 ### Phase 11.3: Publish when upstream ships [status: pending]
-**Goal:** Pack and release the package as a beta against the first upstream package that contains the decision types, or record the wait as an issue and close the phase as deferred.
+**Goal:** Pack and release the package as a beta against the first upstream package that contains the decision types, or record the wait as an issue and keep the phase pending with a Deferred line naming the issue.
 **Surface:** Infra
 **HelpWanted:** no
 **Design:** `docs/superpowers/specs/2026-11-07-phase-11.3-publish-design.md`
 **Plan:** `docs/superpowers/plans/2026-11-07-phase-11.3-publish.md`
+**Deferred:** no upstream package with the decision types existed on 2026-11-07 (newest Microsoft.Extensions.AI.Abstractions 10.11.0, no `IDecisionClient`); publishing waits on #352. Tasks 2-5 run attended once `tools/upstream/find-decisions-package.sh` exits 0. Tasks 2-5 stay unticked on purpose.
 
 ## Later: not scheduled
 Work with an issue but no milestone yet. Each needs a milestone design before it is planned.
