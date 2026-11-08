@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.12.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.2...v1.12.0) (2026-11-07)
+
+
+### Features
+
+* add Microsoft.Extensions.AI decision adapters, unpublished ([41402b3](https://github.com/MarcelRoozekrans/Minos.NET/commit/41402b36dd372cea80928d38f4888e63a20f5cf7))
+
+
+### Documentation
+
+* list the gaps in the upstream decision abstraction ([91986d4](https://github.com/MarcelRoozekrans/Minos.NET/commit/91986d472923060e5d79e9565485e6c5e9f0134b))
+* map the Minos decision types to Microsoft.Extensions.AI ([91986d4](https://github.com/MarcelRoozekrans/Minos.NET/commit/91986d472923060e5d79e9565485e6c5e9f0134b))
+* park the publish tasks of phase 11.3 for unattended runs ([#347](https://github.com/MarcelRoozekrans/Minos.NET/issues/347)) ([1516dc8](https://github.com/MarcelRoozekrans/Minos.NET/commit/1516dc88007fd9ec73db42e7d43dd0a8f5ea47bb))
+* **plan:** groom milestone 11, phases 11.1 to 11.3 ([#345](https://github.com/MarcelRoozekrans/Minos.NET/issues/345)) ([506e345](https://github.com/MarcelRoozekrans/Minos.NET/commit/506e345d0a8f85d13cf607bc79b7ba93b69ebaa8))
+
 ## [1.11.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.1...v1.11.2) (2026-11-07)
 
 
