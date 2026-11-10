@@ -16,7 +16,7 @@
 ## Prerequisites
 
 - PowerShell 7 or later, for `run.ps1`; bash, for `run.sh`
-- the .NET 11 SDK
+- the .NET 11 SDK (the projects still run on .NET 10)
 - Python 3.10 or later, as `python` or `python3`, for the core split and the merge, and for the Python harness
 - Node 20 or later, with npm, only when the Node harness exists
 - on Linux, `taskset` (from util-linux), to pin Node and Python
