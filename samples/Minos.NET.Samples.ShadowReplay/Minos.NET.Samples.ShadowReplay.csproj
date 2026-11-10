@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Cookbook sample: replays a dataset through the recorder's shadow mode and reports how a candidate model compares. -->
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Minos.Samples.ShadowReplay</RootNamespace>

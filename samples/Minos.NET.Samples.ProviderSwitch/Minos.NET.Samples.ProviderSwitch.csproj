@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Cookbook sample: one Choice question against TypeSafe, OpenRouter or a local server, chosen by configuration only. -->
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Minos.Samples.ProviderSwitch</RootNamespace>

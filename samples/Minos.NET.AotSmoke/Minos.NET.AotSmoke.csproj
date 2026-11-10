@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>Minos.AotSmoke</RootNamespace>
     <IsPackable>false</IsPackable>

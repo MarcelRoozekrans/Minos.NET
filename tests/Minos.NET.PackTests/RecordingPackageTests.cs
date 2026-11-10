@@ -39,8 +39,10 @@ public sealed class RecordingPackageTests : IClassFixture<RecordingPackFixture>
 
         Assert.Contains("lib/net10.0/Minos.NET.Recording.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.Recording.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Recording.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Recording.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.Recording.dll"],
+            ["lib/net10.0/Minos.NET.Recording.dll", "lib/net11.0/Minos.NET.Recording.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

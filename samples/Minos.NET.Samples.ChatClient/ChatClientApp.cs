@@ -42,8 +42,8 @@ public static class ChatClientApp
         }
         catch (ArgumentException e)
         {
-            await error.WriteLineAsync(e.Message).ConfigureAwait(false);
-            await error.WriteLineAsync(Usage).ConfigureAwait(false);
+            await error.WriteLineAsync(e.Message, cancellationToken).ConfigureAwait(false);
+            await error.WriteLineAsync(Usage, cancellationToken).ConfigureAwait(false);
             return 2;
         }
 
@@ -65,7 +65,7 @@ public static class ChatClientApp
         int code;
         try
         {
-            await output.WriteLineAsync(online ? "Asking " + model + " through OpenRouter" : "Asking a fake chat client, offline").ConfigureAwait(false);
+            await output.WriteLineAsync(online ? "Asking " + model + " through OpenRouter" : "Asking a fake chat client, offline", cancellationToken).ConfigureAwait(false);
             code = await TriageAsync(provider.GetRequiredService<IDecisionClient>(), output, error, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -79,8 +79,8 @@ public static class ChatClientApp
         }
 
         // Disposing the container disposed the recorder, which wrote what was still queued to the sink.
-        await output.WriteLineAsync().ConfigureAwait(false);
-        await output.WriteLineAsync("Recorded decisions").ConfigureAwait(false);
+        await output.WriteLineAsync(cancellationToken).ConfigureAwait(false);
+        await output.WriteLineAsync("Recorded decisions", cancellationToken).ConfigureAwait(false);
         foreach (var decision in sink.Records)
         {
             var sources = new List<string>();
@@ -89,7 +89,7 @@ public static class ChatClientApp
                 sources.Add(answer.Key + " " + answer.ProbabilitySource);
             }
 
-            await output.WriteLineAsync("  " + string.Join(", ", sources)).ConfigureAwait(false);
+            await output.WriteLineAsync("  " + string.Join(", ", sources), cancellationToken).ConfigureAwait(false);
         }
 
         return 0;
@@ -102,19 +102,19 @@ public static class ChatClientApp
             var result = await client.EvaluateAsync<TicketTriage>(ticket, cancellationToken).ConfigureAwait(false);
             if (result.IsFailure)
             {
-                await error.WriteLineAsync(result.Error.Kind + ": " + result.Error.Message).ConfigureAwait(false);
+                await error.WriteLineAsync(result.Error.Kind + ": " + result.Error.Message, cancellationToken).ConfigureAwait(false);
                 return 1;
             }
 
             var triage = result.Value;
-            await output.WriteLineAsync().ConfigureAwait(false);
-            await output.WriteLineAsync(ticket).ConfigureAwait(false);
+            await output.WriteLineAsync(cancellationToken).ConfigureAwait(false);
+            await output.WriteLineAsync(ticket, cancellationToken).ConfigureAwait(false);
             await output.WriteLineAsync(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  wants a refund  {triage.WantsRefund.Probability:0.00}  from {triage.WantsRefund.ProbabilitySource}")).ConfigureAwait(false);
+                $"  wants a refund  {triage.WantsRefund.Probability:0.00}  from {triage.WantsRefund.ProbabilitySource}"), cancellationToken).ConfigureAwait(false);
             await output.WriteLineAsync(string.Create(
                 CultureInfo.InvariantCulture,
-                $"  team            {triage.Team.Value} {triage.Team.Confidence:0.00}  from {triage.Team.ProbabilitySource}")).ConfigureAwait(false);
+                $"  team            {triage.Team.Value} {triage.Team.Confidence:0.00}  from {triage.Team.ProbabilitySource}"), cancellationToken).ConfigureAwait(false);
         }
 
         return 0;

@@ -36,8 +36,10 @@ public sealed class EvaluationPackageTests : IClassFixture<EvaluationPackFixture
 
         Assert.Contains("lib/net10.0/Minos.NET.Evaluation.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.Evaluation.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Evaluation.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Evaluation.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.Evaluation.dll"],
+            ["lib/net10.0/Minos.NET.Evaluation.dll", "lib/net11.0/Minos.NET.Evaluation.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

@@ -24,7 +24,7 @@ public sealed class RecordingPageTests
         });
         Assert.Equal(
             ["record", "outcome", "outcome", "record", "record", "erasure"],
-            lines.Select(line => JsonDocument.Parse(line).RootElement.GetProperty("kind").GetString()));
+            lines.Select(line => JsonElement.Parse(line).GetProperty("kind").GetString()));
     }
 
     [Fact]

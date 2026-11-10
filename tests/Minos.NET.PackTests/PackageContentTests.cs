@@ -140,6 +140,12 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         Assert.Contains(
             archive.Entries,
             e => string.Equals(e.FullName, "lib/net10.0/Minos.NET.xml", StringComparison.Ordinal));
+        Assert.Contains(
+            archive.Entries,
+            e => string.Equals(e.FullName, "lib/net11.0/Minos.NET.dll", StringComparison.Ordinal));
+        Assert.Contains(
+            archive.Entries,
+            e => string.Equals(e.FullName, "lib/net11.0/Minos.NET.xml", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -149,6 +155,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         string[] allowed =
         [
             "lib/net10.0/Minos.NET.dll",
+            "lib/net11.0/Minos.NET.dll",
             "analyzers/dotnet/cs/Minos.NET.Generator.dll",
             "analyzers/dotnet/cs/Minos.NET.Analyzers.dll",
             "analyzers/dotnet/cs/Minos.NET.CodeFixes.dll",
@@ -197,9 +204,11 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
         var nuspec = XDocument.Load(_fixture.NuspecPath);
 
+        // Only the net10.0 group lists it: the net11.0 shared framework already carries the library, and NuGet prunes it there.
         var dependency = Assert.Single(
             nuspec.Descendants(ns + "dependency"),
             d => string.Equals((string?)d.Attribute("id"), "Microsoft.Extensions.Logging.Abstractions", StringComparison.Ordinal));
+        Assert.Equal("net10.0", (string?)dependency.Parent!.Attribute("targetFramework"));
 
         // A floor, not a pin: 10.0.0 lets a consumer on any .NET 10 servicing release of the extensions resolve it.
         Assert.Equal("10.0.0", (string?)dependency.Attribute("version"));
@@ -224,9 +233,13 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
         var nuspec = XDocument.Load(nuspecPath);
 
-        var dependency = Assert.Single(
-            nuspec.Descendants(ns + "dependency"),
-            d => string.Equals((string?)d.Attribute("id"), id, StringComparison.Ordinal));
+        // The package has a dependency group for each target framework, so the dependency is listed once in each. They must agree.
+        var dependencies = nuspec.Descendants(ns + "dependency")
+            .Where(d => string.Equals((string?)d.Attribute("id"), id, StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(nuspec.Descendants(ns + "group").Count(), dependencies.Length);
+        Assert.Single(dependencies.Select(d => (string?)d.Attribute("version") + "|" + (string?)d.Attribute("exclude") + "|" + (string?)d.Attribute("include")).Distinct(StringComparer.Ordinal));
+        var dependency = dependencies[0];
         var exclude = (string?)dependency.Attribute("exclude");
         var include = (string?)dependency.Attribute("include");
 

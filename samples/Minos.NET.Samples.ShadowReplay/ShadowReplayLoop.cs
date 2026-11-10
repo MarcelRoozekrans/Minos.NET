@@ -129,7 +129,7 @@ public static class ShadowReplayLoop
                     // A failed decision is not shadowed: there is nothing to wait for.
                     primaryFailed++;
                     sink.Forget(item.Id);
-                    await log.WriteLineAsync($"{item.Id}: primary failed ({result.Error.Kind})").ConfigureAwait(false);
+                    await log.WriteLineAsync($"{item.Id}: primary failed ({result.Error.Kind})", cancellationToken).ConfigureAwait(false);
                 }
                 else
                 {
@@ -150,14 +150,14 @@ public static class ShadowReplayLoop
                     {
                         waitsRunOut++;
                         sink.Forget(item.Id);
-                        await log.WriteLineAsync($"{item.Id}: no shadow write within {shadowWait.TotalSeconds.ToString(CultureInfo.InvariantCulture)} s").ConfigureAwait(false);
+                        await log.WriteLineAsync($"{item.Id}: no shadow write within {shadowWait.TotalSeconds.ToString(CultureInfo.InvariantCulture)} s", cancellationToken).ConfigureAwait(false);
                     }
                 }
 
                 if (items % ProgressEvery == 0)
                 {
                     await log.WriteLineAsync(
-                        $"{items}/{dataset.Count}: decided {decided}, primary failed {primaryFailed}, shadowed {shadowed}, waits run out {waitsRunOut}")
+                        $"{items}/{dataset.Count}: decided {decided}, primary failed {primaryFailed}, shadowed {shadowed}, waits run out {waitsRunOut}", cancellationToken)
                         .ConfigureAwait(false);
                 }
             }

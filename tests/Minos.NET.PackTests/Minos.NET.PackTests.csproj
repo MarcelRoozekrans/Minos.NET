@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>$(MinosAppTargetFramework)</TargetFrameworks>
     <RootNamespace>Minos.PackTests</RootNamespace>
     <!-- The Directory.Build.props ".Tests" name rule doesn't match "PackTests"; opt out explicitly. -->
     <IsPackable>false</IsPackable>

@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Cookbook sample: screen chat messages before a language model sees them. -->
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
     <RootNamespace>Minos.Samples.Guardrails</RootNamespace>

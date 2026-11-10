@@ -58,7 +58,7 @@ internal static class ReportCommand
             var priced = PricesFile.Load(pricesPath);
             if (!priced.IsSuccess)
             {
-                await stderr.WriteLineAsync(priced.Error).ConfigureAwait(false);
+                await stderr.WriteLineAsync(priced.Error, CancellationToken.None).ConfigureAwait(false);
                 return ExitCodes.Usage;
             }
 
@@ -78,8 +78,8 @@ internal static class ReportCommand
         var markdown = Path.Combine(outDir, "report.md");
         await File.WriteAllTextAsync(json, report.Value.ToJson(), ct).ConfigureAwait(false);
         await File.WriteAllTextAsync(markdown, report.Value.ToMarkdown(), ct).ConfigureAwait(false);
-        await stdout.WriteLineAsync(json).ConfigureAwait(false);
-        await stdout.WriteLineAsync(markdown).ConfigureAwait(false);
+        await stdout.WriteLineAsync(json, CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync(markdown, CancellationToken.None).ConfigureAwait(false);
         return ExitCodes.Success;
     }
 }

@@ -111,14 +111,14 @@ public sealed class Harness(CompareOptions options, TextWriter log)
             var run = latency[adapter.Client];
             await log.WriteLineAsync(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{adapter.Client}: latency {run.Calls} of {run.Calls} requests, mean {run.Latency.Mean} ms, p50 {run.Latency.P50} ms, p99 {run.Latency.P99} ms; throughput warm-up {warmup.Calls} of {warmup.Calls}, measured {throughput.Calls} of {throughput.Calls}, {throughput.PerSecond:F0}/s")).ConfigureAwait(false);
+                $"{adapter.Client}: latency {run.Calls} of {run.Calls} requests, mean {run.Latency.Mean} ms, p50 {run.Latency.P50} ms, p99 {run.Latency.P99} ms; throughput warm-up {warmup.Calls} of {warmup.Calls}, measured {throughput.Calls} of {throughput.Calls}, {throughput.PerSecond:F0}/s"), cancellationToken).ConfigureAwait(false);
             measured[adapter.Client] = new ClientMeasurement(adapter.Library, adapter.Version, adapter.Note, run.Latency, throughput.PerSecond);
         }
 
         var order = new MeasurementOrder(LatencyRounds, LatencyCallsPerRound, rotation, [.. throughputOrder.Select(a => a.Client)]);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"order: latency in {order.LatencyRounds} rounds of {order.CallsPerRound} calls per client from rotation {rotation}; throughput {string.Join(", ", order.Throughput)}")).ConfigureAwait(false);
+            $"order: latency in {order.LatencyRounds} rounds of {order.CallsPerRound} calls per client from rotation {rotation}; throughput {string.Join(", ", order.Throughput)}"), cancellationToken).ConfigureAwait(false);
         return (measured, order);
     }
 
@@ -152,7 +152,7 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         }).ConfigureAwait(false);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"mock ceiling: best {best.PerSecond:F0}/s at {best.Workers} workers")).ConfigureAwait(false);
+            $"mock ceiling: best {best.PerSecond:F0}/s at {best.Workers} workers"), cancellationToken).ConfigureAwait(false);
         return best.PerSecond;
     }
 

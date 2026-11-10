@@ -72,7 +72,7 @@ public sealed class DecisionCacheKeyTests
     public void Tells_text_state_from_json_state()
     {
         var text = new DecisionRequest(Triage, DecisionContent.FromString("{}"));
-        var json = new DecisionRequest(Triage, DecisionContent.FromJson(JsonDocument.Parse("{}").RootElement));
+        var json = new DecisionRequest(Triage, DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("{}")));
 
         Assert.NotEqual(Key(text), Key(json));
     }
@@ -171,8 +171,8 @@ public sealed class DecisionCacheKeyTests
             new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Text("Payments").WithNotFor("refund")))),
             new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", null))),
             new(QuestionDefinition.Score("severity", "How severe?", "Low", "High")),
-            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"area":"payments"}""").RootElement))))),
-            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"area":"invoices"}""").RootElement))))),
+            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"area":"payments"}""")))))),
+            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"area":"invoices"}""")))))),
             // Same key, instructions and option keys and criteria as the Score above; only the kind differs.
             new(QuestionDefinition.Choice("severity", "How severe?", new OptionDefinition("0", "Low"), new OptionDefinition("1", "High"))),
         ];

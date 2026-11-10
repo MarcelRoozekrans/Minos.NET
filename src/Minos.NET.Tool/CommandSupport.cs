@@ -221,23 +221,23 @@ internal static class CommandSupport
         }
         catch (InputReadException ex)
         {
-            await stderr.WriteLineAsync("The input cannot be read: " + ex.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The input cannot be read: " + ex.Message, CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
         catch (Exception ex) when (ex is FileNotFoundException or FileLoadException)
         {
             // A missing input file, or an assembly that did not load: not a problem with writing the output.
-            await stderr.WriteLineAsync("A file or assembly the command needs is missing or cannot be loaded: " + OneLine(ex.Message)).ConfigureAwait(false);
+            await stderr.WriteLineAsync("A file or assembly the command needs is missing or cannot be loaded: " + OneLine(ex.Message), CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await stderr.WriteLineAsync("The output cannot be written: " + OneLine(ex.Message)).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The output cannot be written: " + OneLine(ex.Message), CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
         catch (Exception ex)
         {
-            await stderr.WriteLineAsync(failure + ": " + OneLine(ex.Message)).ConfigureAwait(false);
+            await stderr.WriteLineAsync(failure + ": " + OneLine(ex.Message), CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
     }

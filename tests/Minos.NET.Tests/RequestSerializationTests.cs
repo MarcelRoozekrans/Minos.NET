@@ -202,9 +202,9 @@ public sealed class RequestSerializationTests
     [Fact]
     public void TypeInfoResolver_ResolvesAllTopLevelTypes()
     {
-        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneRequest)));
-        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneResponse)));
-        Assert.NotNull(Options.GetTypeInfo(typeof(ModelList)));
+        Assert.NotNull(Options.TypeInfoResolver?.GetTypeInfo(typeof(SystemOneRequest), Options));
+        Assert.NotNull(Options.TypeInfoResolver?.GetTypeInfo(typeof(SystemOneResponse), Options));
+        Assert.NotNull(Options.TypeInfoResolver?.GetTypeInfo(typeof(ModelList), Options));
     }
 
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)

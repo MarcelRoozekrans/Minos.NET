@@ -2,6 +2,8 @@
   <!-- Compares Minos.NET with a hand-written HttpClient client and the community .NET Jev clients, all calling the
        benchmark mock. The community clients are benchmark-only dependencies, referenced from this project alone. -->
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>Minos.Benchmarks.Compare</RootNamespace>
     <IsPackable>false</IsPackable>

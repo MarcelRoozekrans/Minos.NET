@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <!-- Roslyn loads code fixes as netstandard2.0 assemblies -->
+    <!-- Directory.Build.props sets TargetFrameworks for the libraries; clearing it keeps this a single-target project, which Minos.NET.csproj packs through GetTargetPath -->
+    <TargetFrameworks />
     <TargetFramework>netstandard2.0</TargetFramework>
     <RootNamespace>Minos.CodeFixes</RootNamespace>
     <IsRoslynComponent>true</IsRoslynComponent>

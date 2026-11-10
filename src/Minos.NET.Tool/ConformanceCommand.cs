@@ -32,7 +32,7 @@ internal static class ConformanceCommand
         var resolved = ToolConfiguration.Resolve(configPath, providerOption, modelOption);
         if (!resolved.IsSuccess)
         {
-            await stderr.WriteLineAsync(resolved.Error).ConfigureAwait(false);
+            await stderr.WriteLineAsync(resolved.Error, CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
@@ -54,20 +54,20 @@ internal static class ConformanceCommand
                 return new SystemOneDecisionClient(http, options);
             });
 
-        await stdout.WriteLineAsync("Checking provider " + name + " with model " + target.Model + ".").ConfigureAwait(false);
+        await stdout.WriteLineAsync("Checking provider " + name + " with model " + target.Model + ".", CancellationToken.None).ConfigureAwait(false);
         var report = await new ConformanceRunner(network, TimeProvider.System).RunAsync(target, ConformanceMode.Live, null, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
         var json = Path.Combine(outDir, "conformance.json");
         var markdown = Path.Combine(outDir, "conformance.md");
         await File.WriteAllTextAsync(json, report.ToJson(), ct).ConfigureAwait(false);
         await File.WriteAllTextAsync(markdown, report.ToMarkdown(), ct).ConfigureAwait(false);
-        await stdout.WriteLineAsync(json).ConfigureAwait(false);
-        await stdout.WriteLineAsync(markdown).ConfigureAwait(false);
-        await stdout.WriteLineAsync("Passed " + report.Passed + ", failed " + report.Failed + ", skipped " + report.Skipped + ".").ConfigureAwait(false);
+        await stdout.WriteLineAsync(json, CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync(markdown, CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync("Passed " + report.Passed + ", failed " + report.Failed + ", skipped " + report.Skipped + ".", CancellationToken.None).ConfigureAwait(false);
 
         if (report.Failed > 0)
         {
-            await stderr.WriteLineAsync("Failed checks: " + string.Join(", ", report.FailedChecks) + ".").ConfigureAwait(false);
+            await stderr.WriteLineAsync("Failed checks: " + string.Join(", ", report.FailedChecks) + ".", CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
 

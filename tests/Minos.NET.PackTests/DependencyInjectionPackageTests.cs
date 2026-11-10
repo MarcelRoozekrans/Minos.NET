@@ -36,8 +36,10 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
 
         Assert.Contains("lib/net10.0/Minos.NET.DependencyInjection.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.DependencyInjection.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.DependencyInjection.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.DependencyInjection.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.DependencyInjection.dll"],
+            ["lib/net10.0/Minos.NET.DependencyInjection.dll", "lib/net11.0/Minos.NET.DependencyInjection.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

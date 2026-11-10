@@ -9,6 +9,8 @@
     error, including IL2xxx and IL3xxx, and none is suppressed. CI publishes it in the aot-surface job; it is never run.
   -->
   <PropertyGroup>
+    <TargetFrameworks />
+    <TargetFramework>$(MinosAppTargetFramework)</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>Minos.AotSurface</RootNamespace>
     <IsPackable>false</IsPackable>

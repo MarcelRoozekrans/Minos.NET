@@ -68,7 +68,7 @@ internal static class AnalyzerVerifier
         var test = new TTest
         {
             TestCode = "using Minos;\n" + source,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
         };
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location));
         return test;

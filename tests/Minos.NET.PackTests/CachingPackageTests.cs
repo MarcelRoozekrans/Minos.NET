@@ -39,8 +39,10 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
 
         Assert.Contains("lib/net10.0/Minos.NET.Caching.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.Caching.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Caching.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Caching.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.Caching.dll"],
+            ["lib/net10.0/Minos.NET.Caching.dll", "lib/net11.0/Minos.NET.Caching.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

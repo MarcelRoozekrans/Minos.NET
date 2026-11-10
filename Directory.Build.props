@@ -1,7 +1,14 @@
 <Project>
   <!-- Build settings shared by all projects -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      Libraries and their tests build for both supported runtimes. Applications, and the tests of applications, run on the
+      newest one only: dotnet run, a Native AOT publish and the compile-inputs path in tests/Minos.NET.AotSmoke.Tests
+      all need one target framework. An application project clears TargetFrameworks and sets TargetFramework to
+      MinosAppTargetFramework, since dotnet publish refuses a project that sets TargetFrameworks, even to one value.
+    -->
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
+    <MinosAppTargetFramework>net11.0</MinosAppTargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>

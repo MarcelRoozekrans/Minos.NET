@@ -156,10 +156,11 @@ internal static class ResultsRules
 
         var builder = new StringBuilder(text.Length);
         var rest = text.AsSpan();
+        Span<char> encoded = stackalloc char[2];
         while (!rest.IsEmpty)
         {
             var rune = Rune.DecodeFromUtf16(rest, out var value, out var used) == OperationStatus.Done ? value : Rune.ReplacementChar;
-            builder.Append(rune.ToString());
+            builder.Append(encoded[..rune.EncodeToUtf16(encoded)]);
             rest = rest[used..];
         }
 

@@ -43,8 +43,8 @@ public static class MockProgram
         }
         catch (Exception e) when (e is ArgumentException or PlatformNotSupportedException)
         {
-            await error.WriteLineAsync(e.Message).ConfigureAwait(false);
-            await error.WriteLineAsync(MockOptions.Usage).ConfigureAwait(false);
+            await error.WriteLineAsync(e.Message.AsMemory(), CancellationToken.None).ConfigureAwait(false);
+            await error.WriteLineAsync(MockOptions.Usage.AsMemory(), CancellationToken.None).ConfigureAwait(false);
             return UsageExitCode;
         }
 
@@ -56,13 +56,13 @@ public static class MockProgram
         // Kestrel reports a taken port as an IOException wrapping AddressInUseException.
         catch (IOException e) when (e.InnerException is AddressInUseException)
         {
-            await error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"Port {options.Port} is already in use.")).ConfigureAwait(false);
+            await error.WriteLineAsync(string.Create(CultureInfo.InvariantCulture, $"Port {options.Port} is already in use.").AsMemory(), CancellationToken.None).ConfigureAwait(false);
             return PortInUseExitCode;
         }
 
         await using (server.ConfigureAwait(false))
         {
-            await output.WriteLineAsync("ready").ConfigureAwait(false);
+            await output.WriteLineAsync("ready".AsMemory(), CancellationToken.None).ConfigureAwait(false);
             await output.FlushAsync(CancellationToken.None).ConfigureAwait(false);
             var inputEnded = Task.Run(async () =>
             {
