@@ -7,8 +7,8 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.11.0" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
-    <PackageVersion Include="System.IO.Hashing" Version="10.0.14" />
-    <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="10.0.14" />
+    <PackageVersion Include="System.IO.Hashing" Version="10.0.15" />
+    <PackageVersion Include="System.Reflection.MetadataLoadContext" Version="10.0.15" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
@@ -20,7 +20,7 @@
       Analyzer tests only: lifts the System.Security.Cryptography.Pkcs 9.0.6 that the analyzer testing packages bring
       through NuGet.Packaging, which has GHSA-2fmv-rv2c-59x7 and GHSA-846f-f764-76mx. 10.0.13 is the first fixed 10.0.x.
     -->
-    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="10.0.15" />
     <!-- Analyzers -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
     <PackageVersion Include="Meziantou.Analyzer" Version="3.0.324" />
@@ -43,18 +43,18 @@
       own floor, 10.0.12: a lower direct reference would be an NU1605 downgrade.
     -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.15" />
     <!--
       Test and smoke-app only: a generic host for the startup validation tests, and in-memory configuration. They follow
       Microsoft.Extensions.Logging's 10.0.12, so nothing they bring is an NU1605 downgrade.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.15" />
     <!-- Sample only: the chat-client sample's ServiceCollection, without a host. It follows Hosting's 10.0.14. -->
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.15" />
     <!-- The docs tests only: compiles the observability page's OpenTelemetry wiring. The library takes no OpenTelemetry
       dependency. -->
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.15" />
     <!--
       The SystemOne package's IHttpClientFactory and AddHttpClient. Its floor is the first .NET 10 release, as for
       Logging.Abstractions, so consumers on any 10.0.x resolve without a conflict.
@@ -78,16 +78,16 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
     <!-- Test and smoke-app only: MemoryCache and MemoryDistributedCache, through AddMemoryCache and AddDistributedMemoryCache. -->
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.15" />
     <!-- The rate-limiting package's RateLimiter. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.5.0" />
     <!-- The minos tool's command line. Only Minos.NET.Tool references it. -->
-    <PackageVersion Include="System.CommandLine" Version="2.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.14" />
+    <PackageVersion Include="System.CommandLine" Version="2.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.15" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.15" />
     <!--
       The Extensions.AI bridge: IChatClient, and the OpenAI SDK whose ChatCompletion carries the logprobs it reads.
       Microsoft.Extensions.AI.OpenAI's AsIChatClient is for the tests, the AOT smoke app and the sample only; the
