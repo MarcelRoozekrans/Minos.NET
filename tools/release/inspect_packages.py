@@ -7,8 +7,8 @@ publish-nuget just before the push. It fails when the directory does not hold ex
 version, each with its .snupkg symbol package; when a package's DLL was built without -p:MinosRelease=true, which
 Directory.Build.props versions <release>-local and which is compiled into the DLL; or when a package depends on another
 Minos package at a different version. Minos.NET.Tool is a dotnet tool: it must have the DotnetTool package type and no
-Minos dependencies, because it bundles its Minos assemblies in tools/net10.0/any, and each of those must carry the
-release version. Standard library only.
+Minos dependencies, because it bundles its Minos assemblies in tools/<framework>/any, and each of those must carry the
+release version. Every package is inspected for each framework in FRAMEWORKS, so a package that lacks the net11.0 build fails. Standard library only.
 """
 import json
 import pathlib
@@ -32,7 +32,8 @@ PACKAGES: dict[str, tuple[str, ...]] = {
 }
 
 TOOL = "Minos.NET.Tool"
-TOOL_DIRECTORY = "tools/net10.0/any/"
+# The target frameworks every package ships a build for, in lib/<framework> or tools/<framework>/any.
+FRAMEWORKS = ("net10.0", "net11.0")
 
 
 def _informational_version_found(dll: bytes, version: str) -> bool:
@@ -60,11 +61,11 @@ def _symbol_problems(directory: pathlib.Path, package: str, version: str) -> lis
     return []
 
 
-def _runtime_asset_problems(package: str, deps: bytes | None, packaged: set[str]) -> list[str]:
+def _runtime_asset_problems(package: str, directory: str, deps: bytes | None, packaged: set[str]) -> list[str]:
     # The tool starts from its deps.json, which lists every assembly it loads. A listed assembly that is not in the
     # package fails only when that code path first runs, so --help alone does not show it.
     if deps is None:
-        return [f"{package}: {TOOL_DIRECTORY}{package}.deps.json is missing"]
+        return [f"{package}: {directory}{package}.deps.json is missing"]
     try:
         targets = json.loads(deps)["targets"]
     except (ValueError, KeyError) as exc:
@@ -73,30 +74,39 @@ def _runtime_asset_problems(package: str, deps: bytes | None, packaged: set[str]
     for libraries in targets.values():
         for library in libraries.values():
             for asset in library.get("runtime", {}):
-                if f"{TOOL_DIRECTORY}{asset.rsplit('/', 1)[-1]}" not in packaged:
+                if f"{directory}{asset.rsplit('/', 1)[-1]}" not in packaged:
                     missing.add(asset)
-    return [f"{package}: {package}.deps.json lists {asset}, which is not in {TOOL_DIRECTORY}" for asset in sorted(missing)]
+    return [f"{package}: {package}.deps.json lists {asset}, which is not in {directory}" for asset in sorted(missing)]
 
 
 def _package_problems(directory: pathlib.Path, package: str, version: str) -> list[str]:
     errors: list[str] = []
     path = directory / f"{package}.{version}.nupkg"
     is_tool = package == TOOL
-    dll_name = f"{TOOL_DIRECTORY}{package}.dll" if is_tool else f"lib/net10.0/{package}.dll"
+    # The assembly each framework's build ships, which must carry the release version.
+    dll_names = {
+        framework: f"tools/{framework}/any/{package}.dll" if is_tool else f"lib/{framework}/{package}.dll"
+        for framework in FRAMEWORKS
+    }
+    dlls: dict[str, bytes | None] = {}
     bundled: dict[str, bytes] = {}
+    deps_by_directory: dict[str, bytes | None] = {}
     packaged: set[str] = set()
-    deps: bytes | None = None
     try:
         with zipfile.ZipFile(path) as archive:
             nuspec = archive.read(f"{package}.nuspec").decode("utf-8")
-            dll = archive.read(dll_name) if dll_name in archive.namelist() else None
+            names = set(archive.namelist())
+            for framework, dll_name in dll_names.items():
+                dlls[framework] = archive.read(dll_name) if dll_name in names else None
             if is_tool:
-                packaged = set(archive.namelist())
-                deps_name = f"{TOOL_DIRECTORY}{package}.deps.json"
-                deps = archive.read(deps_name) if deps_name in packaged else None
-                for name in archive.namelist():
-                    if name.startswith(f"{TOOL_DIRECTORY}Minos.NET") and name.endswith(".dll"):
-                        bundled[name] = archive.read(name)
+                packaged = names
+                for framework in FRAMEWORKS:
+                    directory_name = f"tools/{framework}/any/"
+                    deps_name = f"{directory_name}{package}.deps.json"
+                    deps_by_directory[directory_name] = archive.read(deps_name) if deps_name in names else None
+                    for name in sorted(names):
+                        if name.startswith(f"{directory_name}Minos.NET") and name.endswith(".dll"):
+                            bundled[name] = archive.read(name)
     except zipfile.BadZipFile as exc:
         return [f"{package}: {path.name} is not a valid package: {exc}"]
     except KeyError:
@@ -110,19 +120,22 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
     if declared is None or declared.group(1) != version:
         errors.append(f"{package}: nuspec version is {declared.group(1) if declared else 'missing'}, expected {version}")
 
-    if dll is None:
-        errors.append(f"{package}: {dll_name} is missing")
-    elif not _informational_version_found(dll, version):
-        errors.append(f"{package}: {package}.dll has no informational version {version}; was it built with -p:MinosRelease=true?")
+    for framework, dll_name in dll_names.items():
+        dll = dlls[framework]
+        if dll is None:
+            errors.append(f"{package}: {dll_name} is missing")
+        elif not _informational_version_found(dll, version):
+            errors.append(f"{package}: {dll_name} has no informational version {version}; was it built with -p:MinosRelease=true?")
 
     if is_tool:
         types = re.findall(r'<packageType\b[^>]*\bname="([^"]+)"', nuspec)
         if types != ["DotnetTool"]:
             errors.append(f"{package}: package type is {', '.join(types) or 'missing'}, expected DotnetTool")
-        errors.extend(_runtime_asset_problems(package, deps, packaged))
+        for directory_name, deps in deps_by_directory.items():
+            errors.extend(_runtime_asset_problems(package, directory_name, deps, packaged))
         for name, content in sorted(bundled.items()):
-            if name != dll_name and not _informational_version_found(content, version):
-                errors.append(f"{package}: bundled {name.removeprefix(TOOL_DIRECTORY)} has no informational version {version}; was it built with -p:MinosRelease=true?")
+            if name not in dll_names.values() and not _informational_version_found(content, version):
+                errors.append(f"{package}: bundled {name} has no informational version {version}; was it built with -p:MinosRelease=true?")
 
     errors.extend(_symbol_problems(directory, package, version))
 

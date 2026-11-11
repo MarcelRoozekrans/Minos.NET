@@ -10,7 +10,7 @@ import inspect_packages
 
 VERSION = "1.0.0"
 TOOL = "Minos.NET.Tool"
-# The Minos assemblies the tool bundles in tools/net10.0/any.
+# The Minos assemblies the tool bundles in tools/<framework>/any.
 TOOL_ASSEMBLIES = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.Evaluation", "Minos.NET.Recording", "Minos.NET.Conformance", "Minos.NET.Tool"]
 
 
@@ -27,8 +27,10 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                   symbols: bytes | None = None, with_dll: bool = True,
                   with_symbols: bool = True, drop_dependency: str | None = None,
                   package_type: str | None = None, bundled: dict[str, str] | None = None,
-                  deps_extra: str | None = None, with_deps: bool = True) -> None:
+                  deps_extra: str | None = None, with_deps: bool = True,
+                  without_framework: str | None = None) -> None:
     is_tool = package_id == TOOL
+    frameworks = [framework for framework in inspect_packages.FRAMEWORKS if framework != without_framework]
     dependencies = "".join(
         f'<dependency id="{dependency}" version="{dependency_version or version}" exclude="Build,Analyzers" />'
         for dependency in inspect_packages.PACKAGES[package_id]
@@ -50,22 +52,23 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
     dll = b"MZ fake " + b"\x01\x00\x071.0.0.0\x00\x00" + informational(dll_version or (version + "+abc1234"))
     with zipfile.ZipFile(directory / f"{package_id}.{version}.nupkg", "w") as archive:
         archive.writestr(f"{package_id}.nuspec", nuspec)
-        if is_tool:
-            if with_dll:
-                versions = {name: version + "+abc1234" for name in TOOL_ASSEMBLIES}
-                versions.update(bundled or {})
-                for name, bundled_version in versions.items():
-                    archive.writestr(f"tools/net10.0/any/{name}.dll", b"MZ fake " + informational(bundled_version))
-            archive.writestr("tools/net10.0/any/System.CommandLine.dll", b"MZ third party")
-            if with_deps:
-                runtime = {f"{name}.dll": {} for name in TOOL_ASSEMBLIES}
-                runtime["lib/net10.0/System.CommandLine.dll"] = {}
-                if deps_extra:
-                    runtime[deps_extra] = {}
-                deps = {"targets": {".NETCoreApp,Version=v10.0": {"Minos.NET.Tool/1.0.0": {"runtime": runtime}}}}
-                archive.writestr("tools/net10.0/any/Minos.NET.Tool.deps.json", json.dumps(deps))
-        elif with_dll:
-            archive.writestr(f"lib/net10.0/{package_id}.dll", dll)
+        for framework in frameworks:
+            if is_tool:
+                if with_dll:
+                    versions = {name: version + "+abc1234" for name in TOOL_ASSEMBLIES}
+                    versions.update(bundled or {})
+                    for name, bundled_version in versions.items():
+                        archive.writestr(f"tools/{framework}/any/{name}.dll", b"MZ fake " + informational(bundled_version))
+                archive.writestr(f"tools/{framework}/any/System.CommandLine.dll", b"MZ third party")
+                if with_deps:
+                    runtime = {f"{name}.dll": {} for name in TOOL_ASSEMBLIES}
+                    runtime["lib/net10.0/System.CommandLine.dll"] = {}
+                    if deps_extra:
+                        runtime[deps_extra] = {}
+                    deps = {"targets": {".NETCoreApp,Version=v10.0": {"Minos.NET.Tool/1.0.0": {"runtime": runtime}}}}
+                    archive.writestr(f"tools/{framework}/any/Minos.NET.Tool.deps.json", json.dumps(deps))
+            elif with_dll:
+                archive.writestr(f"lib/{framework}/{package_id}.dll", dll)
     if with_symbols:
         if symbols is not None:
             (directory / f"{package_id}.{version}.snupkg").write_bytes(symbols)
@@ -193,6 +196,32 @@ class InspectPackagesTests(unittest.TestCase):
         errors = inspect_packages.problems(self.directory, VERSION)
         self.assertTrue(any("Minos.NET.RateLimiting" in error and "lib/net10.0/Minos.NET.RateLimiting.dll is missing" in error
                             for error in errors), errors)
+
+    def test_a_library_without_its_net11_build_fails(self) -> None:
+        self.write_all(**{"Minos.NET.Caching": {"without_framework": "net11.0"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any("Minos.NET.Caching" in error and "lib/net11.0/Minos.NET.Caching.dll is missing" in error
+                            for error in errors), errors)
+
+    def test_a_tool_without_its_net11_payload_fails(self) -> None:
+        self.write_all(**{TOOL: {"without_framework": "net11.0"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "tools/net11.0/any/Minos.NET.Tool.dll is missing" in error for error in errors), errors)
+        self.assertTrue(any(TOOL in error and "tools/net11.0/any/Minos.NET.Tool.deps.json is missing" in error for error in errors), errors)
+
+    def test_a_tool_runtime_asset_missing_from_the_net11_payload_fails(self) -> None:
+        self.write_all()
+        path = self.directory / f"{TOOL}.{VERSION}.nupkg"
+        with zipfile.ZipFile(path) as source:
+            entries = {name: source.read(name) for name in source.namelist()}
+        deps = json.loads(entries["tools/net11.0/any/Minos.NET.Tool.deps.json"])
+        deps["targets"][".NETCoreApp,Version=v10.0"]["Minos.NET.Tool/1.0.0"]["runtime"]["Only.Net11.dll"] = {}
+        entries["tools/net11.0/any/Minos.NET.Tool.deps.json"] = json.dumps(deps).encode("utf-8")
+        with zipfile.ZipFile(path, "w") as target:
+            for name, content in entries.items():
+                target.writestr(name, content)
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "Only.Net11.dll" in error and "tools/net11.0/any/" in error for error in errors), errors)
 
     def test_a_nuspec_at_another_version_fails(self) -> None:
         self.write_all(**{"Minos.NET.DependencyInjection": {"nuspec_version": "1.0.1"}})
