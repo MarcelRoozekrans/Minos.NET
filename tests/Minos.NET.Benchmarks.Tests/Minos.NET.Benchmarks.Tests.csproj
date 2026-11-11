@@ -17,6 +17,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <!-- The request-inspection tests' own logging server, and the 503 server of the single-attempt test. -->
     <PackageReference Include="WireMock.Net" />
+    <PackageReference Include="Microsoft.AspNetCore.WebUtilities" />
   </ItemGroup>
 
   <ItemGroup>
