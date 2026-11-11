@@ -611,9 +611,12 @@ internal static class AllocationChecks
         Func<ValueTask<Result<SystemOneResponse, DecisionError>>> disabled = () => disabledClient.EvaluateAsync(request);
         Func<ValueTask<Result<SystemOneResponse, DecisionError>>> enabled = () => enabledClient.EvaluateAsync(request);
 
-        var unloggedBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, unlogged).ConfigureAwait(false);
-        var disabledBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, disabled).ConfigureAwait(false);
-        var enabledBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, enabled).ConfigureAwait(false);
+        // The three figures are compared with each other, so they are measured side by side: MeasureBytesPerCallAsync takes
+        // the least window of each in turn, and on .NET 11 a window's average moves by a few hundred B/call with the
+        // timing of the yields (an await that yields boxes a state machine, one that finds its result ready does not), which
+        // is more than the logger adds. The interleaved measurement returns the figure most calls of each read, which is exact.
+        var (unloggedBytes, disabledBytes, enabledBytes) = await AllocationGate.MeasureBytesPerCallInterleavedAsync(
+            YieldingIterations, unlogged, disabled, enabled).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unloggedBytes}, NullLoggerFactory {disabledBytes}, discarding logger {enabledBytes}");
 
         // AllocationGate counts every thread, since the continuations hop pool threads, so it also counts any runtime
@@ -622,7 +625,7 @@ internal static class AllocationChecks
         // -23 to +61 B/call against no factory, almost all within -4 to +5; the 8 B default failed one run in 30 both
         // times, and longer windows did not shrink the excess. The tolerance is therefore 64 B/call, above the largest
         // excess seen and far below what the check guards against: the discarding logger added 196 B/call or more.
-        // ZeroAlloc.TestHelpers#76 asks the gate to interleave the two sides' windows, which should let it drop back.
+        // RelativeGateAsync interleaves the two sides' windows, as the figures above now are.
         await RelativeGateAsync(
             unlogged,
             disabled,
