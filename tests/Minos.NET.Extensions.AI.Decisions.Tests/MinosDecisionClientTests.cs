@@ -257,7 +257,7 @@ public sealed class MinosDecisionClientTests
         var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions) { TypeInfoResolver = sourceGenerated };
         Assert.DoesNotContain(options.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
 
-        var json = JsonSerializer.Serialize(response, (JsonTypeInfo<UpstreamResponse>)options.GetTypeInfo(typeof(UpstreamResponse)));
+        var json = JsonSerializer.Serialize(response, TypeInfoHelper.GetTypeInfo<UpstreamResponse>(options));
 
         using var document = JsonDocument.Parse(json);
         var properties = document.RootElement.GetProperty("additionalProperties");
