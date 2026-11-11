@@ -26,9 +26,14 @@ internal static class AllocationChecks
     // Calls per measured window for the checks whose calls complete asynchronously.
     private const int YieldingIterations = 500;
 
-    // The per-call tolerance of the relative gate on calls that complete asynchronously; DisabledLoggerAddsNothingWhereAnEnabledOneDoes
-    // records how it was measured.
-    private const int YieldingToleranceBytesPerCall = 64;
+    // The per-call tolerance of the comparison on calls that complete asynchronously, in bytes. Unchanged from when the comparison
+    // counted every thread; the single-threaded count of DisabledLoggerAddsNothingWhereAnEnabledOneDoes reads the same figure for
+    // every call, so it is headroom, far below the 248 B the discarding logger adds.
+    private const int SuspendedToleranceBytesPerCall = 64;
+
+    // Rounds of the suspended-call comparison, and the calls of each client made before the first counted one.
+    private const int SuspendedRounds = 200;
+    private const int SuspendedWarmupRounds = 50;
 
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     private const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
@@ -595,65 +600,135 @@ internal static class AllocationChecks
     /// <summary>
     /// Proves the disabled-logger gates can tell a disabled logger from an enabled one. The canned handler completes
     /// synchronously, where even an enabled logger adds nothing, so those gates would pass if a disabled logger wrongly
-    /// entered the logging wrappers. A yielding handler makes every call complete asynchronously, where the wrappers'
+    /// entered the logging wrappers. A suspended handler makes every call complete asynchronously, where the wrappers'
     /// state machines are boxed and show up as bytes.
     /// </summary>
-    public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
+    /// <remarks>
+    /// The call is made to suspend on purpose and is resumed on the measuring thread. Measured on 2026-11-11, a handler
+    /// that merely yields leaves it to timing whether the wrappers' awaits suspend or find their result ready, and an await
+    /// that finds its result ready boxes nothing. On the CI runner that read 4016 B/call for all three clients, so the
+    /// enabled logger looked free, while on a workstation the same published binary read 4968, 4968 and 5216. Here the
+    /// handler's task is pending when the wrappers reach their awaits, and completing it runs the whole continuation chain
+    /// inline on this thread, so the thread's own allocation counter sees every byte and no timing is involved.
+    /// </remarks>
+    public static void DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
         var request = Program.Request();
-        using var unloggedHttp = YieldingHttpClient(NoulResponseJson);
-        using var unloggedClient = new SystemOneDecisionClient(unloggedHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" });
-        using var disabledHttp = YieldingHttpClient(NoulResponseJson);
-        using var disabledClient = new SystemOneDecisionClient(disabledHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" }, NullLoggerFactory.Instance);
-        using var enabledHttp = YieldingHttpClient(NoulResponseJson);
-        using var enabledClient = new SystemOneDecisionClient(enabledHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" }, DiscardingLoggerFactory.Instance);
-        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> unlogged = () => unloggedClient.EvaluateAsync(request);
-        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> disabled = () => disabledClient.EvaluateAsync(request);
-        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> enabled = () => enabledClient.EvaluateAsync(request);
+        using var unlogged = new SuspendedCall(null, request);
+        using var disabled = new SuspendedCall(NullLoggerFactory.Instance, request);
+        using var enabled = new SuspendedCall(DiscardingLoggerFactory.Instance, request);
 
-        // The three figures are compared with each other, so they are measured side by side: MeasureBytesPerCallAsync takes
-        // the least window of each in turn, and on .NET 11 a window's average moves by a few hundred B/call with the
-        // timing of the yields (an await that yields boxes a state machine, one that finds its result ready does not), which
-        // is more than the logger adds. The interleaved measurement returns the figure most calls of each read, which is exact.
-        var (unloggedBytes, disabledBytes, enabledBytes) = await AllocationGate.MeasureBytesPerCallInterleavedAsync(
-            YieldingIterations, unlogged, disabled, enabled).ConfigureAwait(false);
-        Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unloggedBytes}, NullLoggerFactory {disabledBytes}, discarding logger {enabledBytes}");
+        // The three clients run in turn within every round, so a drift in the heap or the runtime moves all of them alike.
+        var unloggedBytes = new long[SuspendedRounds];
+        var disabledBytes = new long[SuspendedRounds];
+        var enabledBytes = new long[SuspendedRounds];
+        for (var round = -SuspendedWarmupRounds; round < SuspendedRounds; round++)
+        {
+            var u = unlogged.MeasureOnce();
+            var d = disabled.MeasureOnce();
+            var e = enabled.MeasureOnce();
+            if (round >= 0)
+            {
+                unloggedBytes[round] = u;
+                disabledBytes[round] = d;
+                enabledBytes[round] = e;
+            }
+        }
 
-        // AllocationGate counts every thread, since the continuations hop pool threads, so it also counts any runtime
-        // thread's allocation, and the two sides do not always land on the same pool threads. Over 60 runs of the
-        // published win-x64 app on 2026-10-13, 30 with 500 calls per window and 30 with 2000, NullLoggerFactory measured
-        // -23 to +61 B/call against no factory, almost all within -4 to +5; the 8 B default failed one run in 30 both
-        // times, and longer windows did not shrink the excess. The tolerance is therefore 64 B/call, above the largest
-        // excess seen and far below what the check guards against: the discarding logger added 196 B/call or more.
-        // RelativeGateAsync interleaves the two sides' windows, as the figures above now are.
-        await RelativeGateAsync(
-            unlogged,
-            disabled,
-            "DisabledLoggerAddsNothing",
-            "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync").ConfigureAwait(false);
+        // Every call allocates the same amount, so the most common figure is the call's own; a one-off, such as a cache
+        // filling on the first calls, is not counted.
+        var unloggedFigure = MostCommon(unloggedBytes);
+        var disabledFigure = MostCommon(disabledBytes);
+        var enabledFigure = MostCommon(enabledBytes);
+        Console.WriteLine($"     suspended EvaluateAsync B/call: no factory {unloggedFigure}, NullLoggerFactory {disabledFigure}, discarding logger {enabledFigure}");
+
         Program.Check(
-            enabledBytes - unloggedBytes > YieldingToleranceBytesPerCall,
-            "the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers");
+            disabledFigure - unloggedFigure <= SuspendedToleranceBytesPerCall,
+            $"a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync: {disabledFigure} B against {unloggedFigure} B/call");
+        Program.Check(
+            enabledFigure - unloggedFigure > SuspendedToleranceBytesPerCall,
+            $"the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers: {enabledFigure} B against {unloggedFigure} B/call");
     }
+
+    // The value that occurs most often; ties go to the smaller one.
+    private static long MostCommon(long[] values) =>
+        values.GroupBy(static value => value).OrderByDescending(static group => group.Count()).ThenBy(static group => group.Key).First().Key;
 
     // An HttpClient over a handler that yields on every call, so the call completes asynchronously.
     private static HttpClient YieldingHttpClient(string responseJson) =>
         new(new YieldingHandler(HttpStatusCode.OK, responseJson)) { BaseAddress = new Uri("https://example.test/api/") };
 
-    // A relative gate for calls that complete asynchronously: candidate may allocate no more per call than baseline,
-    // plus YieldingToleranceBytesPerCall for a counter that sees every thread.
-    private static async Task RelativeGateAsync<T>(
-        Func<ValueTask<T>> baseline, Func<ValueTask<T>> candidate, string label, string passDescription)
+    // One SystemOneDecisionClient over a handler whose response the caller releases, and the single-threaded measurement of a call.
+    private sealed class SuspendedCall : IDisposable
     {
-        try
+        private readonly SuspendedHandler _handler = new(NoulResponseJson);
+        private readonly HttpClient _http;
+        private readonly SystemOneDecisionClient _client;
+        private readonly SystemOneRequest _request;
+
+        public SuspendedCall(ILoggerFactory? loggerFactory, SystemOneRequest request)
         {
-            await AllocationGate.AssertNoMoreThanAsync(
-                YieldingIterations, YieldingToleranceBytesPerCall, AllocationGate.DefaultAsyncWarmup, baseline, candidate, label).ConfigureAwait(false);
-            Program.Check(true, passDescription);
+            _request = request;
+            _http = new HttpClient(_handler) { BaseAddress = new Uri("https://example.test/api/") };
+            var options = new SystemOneDecisionClientOptions { ApiKey = "smoke-key" };
+            _client = loggerFactory is null
+                ? new SystemOneDecisionClient(_http, options)
+                : new SystemOneDecisionClient(_http, options, loggerFactory);
         }
-        catch (InvalidOperationException exception)
+
+        // The bytes this thread allocates from starting a call to having its result. Starting the call runs it up to the
+        // handler, which suspends it; releasing the handler runs the rest of it here, since the task is not set to continue
+        // on the pool. Throws if the call did not suspend or did not finish here, as the figure would then not be one call's.
+        public long MeasureOnce()
         {
-            Program.Check(false, exception.Message);
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            var pending = _client.EvaluateAsync(_request);
+            var suspended = !pending.IsCompleted;
+            _handler.Release();
+            if (!suspended || !pending.IsCompleted)
+            {
+                throw new InvalidOperationException(
+                    $"the suspended call did not run as designed: suspended {suspended}, completed on this thread {pending.IsCompleted}");
+            }
+
+            var succeeded = pending.Result.IsSuccess;
+            var after = GC.GetAllocatedBytesForCurrentThread();
+            if (!succeeded)
+            {
+                throw new InvalidOperationException("the suspended call did not succeed");
+            }
+
+            return after - before;
+        }
+
+        public void Dispose()
+        {
+            _client.Dispose();
+            _http.Dispose();
+        }
+    }
+
+    // Answers a request when told to, on the thread that tells it, instead of when the scheduler gets to it.
+    private sealed class SuspendedHandler(string body) : HttpMessageHandler
+    {
+        private TaskCompletionSource<HttpResponseMessage>? _pending;
+        private HttpRequestMessage? _request;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            _request = request;
+            _pending = new TaskCompletionSource<HttpResponseMessage>();
+            return _pending.Task;
+        }
+
+        public void Release()
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                RequestMessage = _request,
+            };
+            _pending!.SetResult(response);
         }
     }
 
