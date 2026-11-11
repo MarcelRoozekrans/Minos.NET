@@ -289,7 +289,7 @@ public sealed class DecisionMapperAnswerTests
         var questions = Success(DecisionMapper.ToUpstreamQuestions(Definition, Provider));
         var sent = DecisionMapper.ToUpstreamAnswer(Keyed(minos, questions[2].Id), questions[2]);
 
-        var typeInfo = AIJsonUtilities.DefaultOptions.GetTypeInfo(typeof(DecisionAnswer));
+        var typeInfo = TypeInfoHelper.GetTypeInfo<DecisionAnswer>(AIJsonUtilities.DefaultOptions);
         var json = JsonSerializer.Serialize(sent, typeInfo);
         var received = Assert.IsType<ScoreDecisionAnswer>(JsonSerializer.Deserialize(json, typeInfo));
 
@@ -323,7 +323,7 @@ public sealed class DecisionMapperAnswerTests
     [InlineData("minos.probabilitySource", "1")]
     public void AMalformedMinosKey_IsAnInvalidResponse_WithoutItsValueInTheMessage(string key, string json)
     {
-        var properties = Properties((key, JsonDocument.Parse(json).RootElement));
+        var properties = Properties((key, JsonSerializer.Deserialize<JsonElement>(json)));
         var score = new ScoreDecisionAnswer("priority", 1.65, [new("0", 0.1), new("1", 0.35), new("2", 0.35), new("3", 0.2)], additionalProperties: properties);
 
         var result = DecisionMapper.ToMinosAnswer(score, Definition.Questions[2]);
