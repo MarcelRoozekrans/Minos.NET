@@ -42,8 +42,10 @@ public sealed class ExtensionsAIPackageTests : IClassFixture<ExtensionsAIPackFix
 
         Assert.Contains("lib/net10.0/Minos.NET.Extensions.AI.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.Extensions.AI.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Extensions.AI.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.Extensions.AI.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.Extensions.AI.dll"],
+            ["lib/net10.0/Minos.NET.Extensions.AI.dll", "lib/net11.0/Minos.NET.Extensions.AI.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

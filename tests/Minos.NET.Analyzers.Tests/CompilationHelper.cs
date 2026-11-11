@@ -17,7 +17,7 @@ internal static class CompilationHelper
     // different assembly identity than the ref-assembly corlib CSharpAnalyzerTest compiles the source under test
     // against, and a type shared between the two (an enum's base type, for one) would not bind as the same symbol.
     private static readonly Lazy<Task<ImmutableArray<MetadataReference>>> References = new(async () =>
-        (await ReferenceAssemblies.Net.Net100.ResolveAsync(LanguageNames.CSharp, CancellationToken.None))
+        (await TestReferenceAssemblies.Current.ResolveAsync(LanguageNames.CSharp, CancellationToken.None))
             .Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location)));
 
     public static Task<CSharpCompilation> CompileAsync(string source, string assemblyName = "CompilationHelperTest")

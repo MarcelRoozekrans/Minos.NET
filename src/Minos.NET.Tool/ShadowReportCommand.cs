@@ -45,7 +45,7 @@ internal static class ShadowReportCommand
             var priced = PricesFile.Load(pricesPath);
             if (!priced.IsSuccess)
             {
-                await stderr.WriteLineAsync(priced.Error).ConfigureAwait(false);
+                await stderr.WriteLineAsync(priced.Error, CancellationToken.None).ConfigureAwait(false);
                 return ExitCodes.Usage;
             }
 
@@ -60,12 +60,12 @@ internal static class ShadowReportCommand
 
         foreach (var problem in problems)
         {
-            await stderr.WriteLineAsync("line " + problem.Line.ToString(CultureInfo.InvariantCulture) + ": " + problem.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("line " + problem.Line.ToString(CultureInfo.InvariantCulture) + ": " + problem.Message, CancellationToken.None).ConfigureAwait(false);
         }
 
         if (report.DecisionsShadowed == 0)
         {
-            await stderr.WriteLineAsync("Nothing to report: no decision in the records has a shadow answer.").ConfigureAwait(false);
+            await stderr.WriteLineAsync("Nothing to report: no decision in the records has a shadow answer.", CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
@@ -89,9 +89,9 @@ internal static class ShadowReportCommand
         await stdout.WriteLineAsync(
             "decisions read: " + report.DecisionsRead.ToString(CultureInfo.InvariantCulture)
             + ", decisions shadowed: " + report.DecisionsShadowed.ToString(CultureInfo.InvariantCulture)
-            + ", compared keys: " + compared.ToString(CultureInfo.InvariantCulture)).ConfigureAwait(false);
-        await stdout.WriteLineAsync(jsonPath).ConfigureAwait(false);
-        await stdout.WriteLineAsync(markdownPath).ConfigureAwait(false);
+            + ", compared keys: " + compared.ToString(CultureInfo.InvariantCulture), CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync(jsonPath, CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync(markdownPath, CancellationToken.None).ConfigureAwait(false);
         return ExitCodes.Success;
     }
 

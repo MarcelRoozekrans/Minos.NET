@@ -43,8 +43,10 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
 
         Assert.Contains("lib/net10.0/Minos.NET.SystemOne.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.SystemOne.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.SystemOne.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.SystemOne.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.SystemOne.dll"],
+            ["lib/net10.0/Minos.NET.SystemOne.dll", "lib/net11.0/Minos.NET.SystemOne.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

@@ -74,7 +74,7 @@ public sealed class CodeFixTests
         {
             TestCode = source,
             FixedCode = source,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
         AddReferences(test, reference);
@@ -126,7 +126,7 @@ public sealed class CodeFixTests
             FixedCode = "using Minos;" + Environment.NewLine + Environment.NewLine + "public enum E { [Minos.Criterion(\"x\")] A, [Criterion(\"B\")] B } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
         AddMinosReference(test);
@@ -236,7 +236,7 @@ public sealed class CodeFixTests
             FixedCode = "using Minos;\n\npublic enum E { [Minos.Criterion(\"x\")] A, [Criterion(\"B\")] B } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
         test.TestState.AnalyzerConfigFiles.Add(("/.editorconfig", "root = true\n\n[*]\nend_of_line = lf\n"));
@@ -253,7 +253,7 @@ public sealed class CodeFixTests
     {
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
             CompilerDiagnostics = CompilerDiagnostics.Errors,
         };
 
@@ -279,7 +279,7 @@ public sealed class CodeFixTests
         {
             TestCode = "using Minos;\n" + source,
             FixedCode = fixedCode,
-            ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
+            ReferenceAssemblies = TestReferenceAssemblies.Current,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
 

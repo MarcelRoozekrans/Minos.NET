@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>$(MinosAppTargetFramework)</TargetFrameworks>
     <RootNamespace>Minos.Samples.Tests</RootNamespace>
   </PropertyGroup>
 

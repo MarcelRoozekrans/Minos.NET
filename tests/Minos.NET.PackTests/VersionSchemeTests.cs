@@ -65,7 +65,7 @@ public sealed class VersionSchemeTests : IDisposable
             TimeSpan.FromMinutes(2),
             [
                 "msbuild", Path.Combine(root, "src", "Minos.NET", "Minos.NET.csproj"), "-nologo",
-                "-t:GetAssemblyVersion", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
+                "-t:GetAssemblyVersion", "-p:TargetFramework=net11.0", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
                 "-getProperty:Version", "-getProperty:PackageVersion", "-getProperty:InformationalVersion",
                 "-getProperty:AssemblyVersion", "-getProperty:FileVersion",
             ]);

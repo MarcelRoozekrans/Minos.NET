@@ -42,7 +42,7 @@ internal static class MinosCli
         {
             foreach (var error in parse.Errors)
             {
-                await stderr.WriteLineAsync(error.Message).ConfigureAwait(false);
+                await stderr.WriteLineAsync(error.Message, CancellationToken.None).ConfigureAwait(false);
             }
 
             return ExitCodes.Usage;

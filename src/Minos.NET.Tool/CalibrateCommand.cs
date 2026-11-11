@@ -65,7 +65,7 @@ internal static class CalibrateCommand
         var resolved = ToolConfiguration.Resolve(request.Config, request.Provider, request.Model);
         if (!resolved.IsSuccess)
         {
-            await stderr.WriteLineAsync(resolved.Error).ConfigureAwait(false);
+            await stderr.WriteLineAsync(resolved.Error, CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
@@ -75,7 +75,7 @@ internal static class CalibrateCommand
             var priced = PricesFile.Load(request.Prices);
             if (!priced.IsSuccess)
             {
-                await stderr.WriteLineAsync(priced.Error).ConfigureAwait(false);
+                await stderr.WriteLineAsync(priced.Error, CancellationToken.None).ConfigureAwait(false);
                 return ExitCodes.Usage;
             }
 
@@ -92,7 +92,7 @@ internal static class CalibrateCommand
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + CommandSupport.OneLine(ex.Message)).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + CommandSupport.OneLine(ex.Message), CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
@@ -134,7 +134,7 @@ internal static class CalibrateCommand
 
             // A previous run in this directory may have left the other kind of results file; it would contradict this run.
             File.Delete(Path.Combine(outDir, stopped is null ? "results.partial.jsonl" : "results.jsonl"));
-            await stdout.WriteLineAsync(resultsFile).ConfigureAwait(false);
+            await stdout.WriteLineAsync(resultsFile, CancellationToken.None).ConfigureAwait(false);
 
             var cancelled = stopped is DatasetRunCanceledException;
             var report = CalibrationReport.Create(results, loaded.Value, priceTable);
@@ -149,8 +149,8 @@ internal static class CalibrateCommand
             var markdown = Path.Combine(outDir, "report.md");
             await File.WriteAllTextAsync(json, report.Value.ToJson(), CancellationToken.None).ConfigureAwait(false);
             await File.WriteAllTextAsync(markdown, report.Value.ToMarkdown(), CancellationToken.None).ConfigureAwait(false);
-            await stdout.WriteLineAsync(json).ConfigureAwait(false);
-            await stdout.WriteLineAsync(markdown).ConfigureAwait(false);
+            await stdout.WriteLineAsync(json, CancellationToken.None).ConfigureAwait(false);
+            await stdout.WriteLineAsync(markdown, CancellationToken.None).ConfigureAwait(false);
 
             if (cancelled)
             {
@@ -159,7 +159,7 @@ internal static class CalibrateCommand
 
             if (stopped is not null)
             {
-                await stderr.WriteLineAsync(CommandSupport.OneLine(stopped.Message)).ConfigureAwait(false);
+                await stderr.WriteLineAsync(CommandSupport.OneLine(stopped.Message), CancellationToken.None).ConfigureAwait(false);
                 return ExitCodes.Failure;
             }
 

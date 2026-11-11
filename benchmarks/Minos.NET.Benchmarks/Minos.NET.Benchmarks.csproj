@@ -1,5 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <!-- BenchmarkDotNet 0.15.8 cannot run on net11.0: it throws GetRuntimeVersion not implemented for NotRecognized. Only 0.16.0-preview has Net11_0. Move to MinosAppTargetFramework with the first stable release that supports it. -->
+    <TargetFrameworks />
     <TargetFramework>net10.0</TargetFramework>
     <OutputType>Exe</OutputType>
     <RootNamespace>Minos.Benchmarks</RootNamespace>

@@ -43,8 +43,10 @@ public sealed class OpenAIPackageTests : IClassFixture<OpenAIPackFixture>
 
         Assert.Contains("lib/net10.0/Minos.NET.OpenAI.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.OpenAI.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.OpenAI.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.OpenAI.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.OpenAI.dll"],
+            ["lib/net10.0/Minos.NET.OpenAI.dll", "lib/net11.0/Minos.NET.OpenAI.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

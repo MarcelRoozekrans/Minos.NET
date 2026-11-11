@@ -39,8 +39,10 @@ public sealed class RateLimitingPackageTests : IClassFixture<RateLimitingPackFix
 
         Assert.Contains("lib/net10.0/Minos.NET.RateLimiting.dll", names);
         Assert.Contains("lib/net10.0/Minos.NET.RateLimiting.xml", names);
+        Assert.Contains("lib/net11.0/Minos.NET.RateLimiting.dll", names);
+        Assert.Contains("lib/net11.0/Minos.NET.RateLimiting.xml", names);
         Assert.Equal(
-            ["lib/net10.0/Minos.NET.RateLimiting.dll"],
+            ["lib/net10.0/Minos.NET.RateLimiting.dll", "lib/net11.0/Minos.NET.RateLimiting.dll"],
             names.Where(name => name.EndsWith(".dll", StringComparison.Ordinal)).ToArray());
     }
 

@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Minos.Tool.Tests;
 
 /// <summary>The files and the command line every command test needs.</summary>
@@ -45,13 +47,21 @@ internal sealed class Harness : IDisposable
         return new Run(exit, stdout.ToString(), stderr.ToString());
     }
 
-    private sealed class CancelOnWrite(CancellationTokenSource cts) : StringWriter
+    // Cancels on the first character written. Every TextWriter write ends in Write(char), so this sees each overload the tool
+    // may call, including the one with a token that .NET 11 adds, which StringWriter does not route through its virtual methods.
+    private sealed class CancelOnWrite(CancellationTokenSource cts) : TextWriter
     {
-        public override Task WriteLineAsync(string? value)
+        private readonly StringBuilder _text = new();
+
+        public override Encoding Encoding => Encoding.UTF8;
+
+        public override void Write(char value)
         {
             cts.Cancel();
-            return base.WriteLineAsync(value);
+            _text.Append(value);
         }
+
+        public override string ToString() => _text.ToString();
     }
 
     public static Task<Run> Invoke(FakeSystemOne? fake, params string[] args) => Invoke(fake, CancellationToken.None, args);

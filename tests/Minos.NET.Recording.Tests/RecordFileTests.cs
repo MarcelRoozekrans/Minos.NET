@@ -113,7 +113,7 @@ public sealed class RecordFileTests : IDisposable
     [Fact]
     public async Task ARecord_RoundTrips_ThroughTheFile()
     {
-        var jsonState = DecisionContent.FromJson(JsonDocument.Parse("""{"subject":"Card","lines":["one","two"]}""").RootElement);
+        var jsonState = DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"subject":"Card","lines":["one","two"]}"""));
         var written = new[]
         {
             Record("d-1"),
@@ -181,7 +181,7 @@ public sealed class RecordFileTests : IDisposable
     {
         var text = Encoding.UTF8.GetString(Lines(
             Rec(Record()),
-            Rec(Record("d-2", erasureKey: null, state: DecisionContent.FromJson(JsonDocument.Parse("""{"subject":"Card"}""").RootElement), answers: [], errorKind: DecisionErrorKind.Refused, refusedKeys: ["urgent"])),
+            Rec(Record("d-2", erasureKey: null, state: DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"subject":"Card"}""")), answers: [], errorKind: DecisionErrorKind.Refused, refusedKeys: ["urgent"])),
             Out("d-1", Confirmed()),
             Out("d-1", Signal()),
             Erase("customer-9", null),
@@ -350,7 +350,7 @@ public sealed class RecordFileTests : IDisposable
     [Fact]
     public void TheQuestionsMember_LoadsInTheDatasetLoader()
     {
-        var line = Json(Rec(Record(state: DecisionContent.FromJson(JsonDocument.Parse("""{"subject":"Card"}""").RootElement))));
+        var line = Json(Rec(Record(state: DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"subject":"Card"}""")))));
         using var document = JsonDocument.Parse(line);
         var questions = document.RootElement.GetProperty("questions").GetRawText();
         var state = document.RootElement.GetProperty("state").GetRawText();
@@ -365,10 +365,10 @@ public sealed class RecordFileTests : IDisposable
     [Fact]
     public void AJsonCriterion_LoadsInTheDatasetLoader_AsCriterionJson()
     {
-        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"description":"lvl b","weight":2}""").RootElement));
+        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"description":"lvl b","weight":2}""")));
         var definition = new QuestionSetDefinition(
             QuestionDefinition.Choice("topic", "Which?", new OptionDefinition("a", jsonCriterion), new OptionDefinition("b", null)),
-            QuestionDefinition.Score("mood", "How?", "calm", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""["angry","very"]""").RootElement))));
+            QuestionDefinition.Score("mood", "How?", "calm", Criterion.Json(DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""["angry","very"]""")))));
         var line = Json(Rec(Record(definition: definition, answers: [])));
         using var document = JsonDocument.Parse(line);
         var questions = document.RootElement.GetProperty("questions").GetRawText();
@@ -387,7 +387,7 @@ public sealed class RecordFileTests : IDisposable
     [Fact]
     public async Task AJsonCriterion_ReadsBackAsJson_EvenWhenItLooksLikeATextCriterion()
     {
-        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"description":"lvl b","weight":2}""").RootElement));
+        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""{"description":"lvl b","weight":2}""")));
         var definition = new QuestionSetDefinition(QuestionDefinition.Score("mood", "How?", "calm", jsonCriterion));
 
         var (decisions, problems) = await ReadAsync(Lines(Rec(Record(definition: definition, answers: []))));
@@ -706,12 +706,12 @@ public sealed class RecordFileTests : IDisposable
         var path = PathOf();
         await File.WriteAllBytesAsync(
             path,
-            Lines(Rec(Record("d-1", state: "plain text")), Rec(Record("d-2", state: DecisionContent.FromJson(JsonDocument.Parse("""[1,2]""").RootElement)))),
+            Lines(Rec(Record("d-1", state: "plain text")), Rec(Record("d-2", state: DecisionContent.FromJson(JsonSerializer.Deserialize<JsonElement>("""[1,2]"""))))),
             CancellationToken.None);
 
         var lines = (await File.ReadAllTextAsync(path, CancellationToken.None)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-        Assert.Equal(JsonValueKind.String, JsonDocument.Parse(lines[0]).RootElement.GetProperty("state").ValueKind);
-        Assert.Equal(JsonValueKind.Array, JsonDocument.Parse(lines[1]).RootElement.GetProperty("state").ValueKind);
+        Assert.Equal(JsonValueKind.String, JsonSerializer.Deserialize<JsonElement>(lines[0]).GetProperty("state").ValueKind);
+        Assert.Equal(JsonValueKind.Array, JsonSerializer.Deserialize<JsonElement>(lines[1]).GetProperty("state").ValueKind);
     }
 }

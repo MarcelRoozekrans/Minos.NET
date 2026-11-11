@@ -96,13 +96,8 @@ public sealed class DecisionClientDisposalTests
         var result = await DisposeWhileBlocked(gate, client, call);
 
         AssertDisposed(result);
-        Assert.Null(result.Error.Exception);
         _ = ClientTestKit.OnlyRequest(gate.Handler);
-
-        // The retry loop logs the retry the 503 earns before its wait, then finds the client disposed and does not send
-        // it. The final failure is logged as Disposed.
-        Assert.Equal(nameof(DecisionErrorKind.Overloaded), LogAssert.Field(logs.Only(1003), "ErrorKind"));
-        Assert.Equal(nameof(DecisionErrorKind.Disposed), LogAssert.Field(logs.Only(1002), "ErrorKind"));
+        AssertTheRetryIsNotSent(logs, result);
     }
 
     // The order the other way round: the per-attempt time-out fires and is mapped while the client is not yet disposed,
@@ -180,10 +175,24 @@ public sealed class DecisionClientDisposalTests
         var result = await DisposeWhileBlocked(gate, client, call);
 
         AssertDisposed(result);
-        Assert.Null(result.Error.Exception);
         _ = ClientTestKit.OnlyRequest(gate.Handler);
         Assert.Equal(0, pool.Outstanding);
+        AssertTheRetryIsNotSent(logs, result);
+    }
+
+    // The retry loop logs the retry the 503 earns before its wait, then finds the client disposed and does not send it.
+    // The final failure is logged as Disposed. .NET 11's HttpClient checks the cancellation that disposing the client
+    // raises while it buffers the response body, and the 503 arrives after that disposal, so the response is never seen:
+    // the attempt fails with the cancellation, which the mapper reports as Disposed, and there is no retry to log.
+    private static void AssertTheRetryIsNotSent<T>(LogCapture logs, Result<T, DecisionError> result)
+    {
+#if NET11_0_OR_GREATER
+        Assert.IsAssignableFrom<OperationCanceledException>(result.Error.Exception);
+        Assert.DoesNotContain(1003, logs.EventIds);
+#else
+        Assert.Null(result.Error.Exception);
         Assert.Equal(nameof(DecisionErrorKind.Overloaded), LogAssert.Field(logs.Only(1003), "ErrorKind"));
+#endif
         Assert.Equal(nameof(DecisionErrorKind.Disposed), LogAssert.Field(logs.Only(1002), "ErrorKind"));
     }
 

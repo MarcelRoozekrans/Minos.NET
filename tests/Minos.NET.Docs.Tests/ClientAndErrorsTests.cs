@@ -517,7 +517,7 @@ public sealed class ClientAndErrorsTests
             Assert.Equal("billing (77 % sure)", await RawChoiceRequests.RouteAsync(client, "My invoice is wrong.", CancellationToken.None));
         }
 
-        var sent = JsonDocument.Parse(Assert.Single(requests).Body).RootElement.GetProperty("questions").GetProperty("team");
+        var sent = JsonElement.Parse(Assert.Single(requests).Body).GetProperty("questions").GetProperty("team");
         Assert.Equal("choice", sent.GetProperty("type").GetString());
         Assert.Equal(JsonValueKind.Null, sent.GetProperty("criteria").GetProperty("other").ValueKind);
     }

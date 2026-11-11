@@ -90,7 +90,9 @@ public sealed class CalibrateTests : IDisposable
                     release.TrySetResult();
                 }
 
-                await Task.WhenAny(release.Task, Task.Delay(TimeSpan.FromSeconds(2))).ConfigureAwait(false);
+                using var timeout = new CancellationTokenSource();
+                await Task.WhenAny(release.Task, Task.Delay(TimeSpan.FromSeconds(2), timeout.Token)).ConfigureAwait(false);
+                await timeout.CancelAsync().ConfigureAwait(false);
             },
         };
 

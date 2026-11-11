@@ -35,13 +35,13 @@ internal sealed class DatasetItemValidator
     /// Gets the line's top-level members as checked, the first copy of each. The reader builds only from these and
     /// from <see cref="Questions"/>, never from the raw element, whose lookups return the last copy of a duplicate.
     /// </summary>
-    internal Dictionary<string, JsonElement> ItemMembers { get; private set; } = [];
+    internal Dictionary<string, JsonElement> ItemMembers { get; private set; } = new(StringComparer.Ordinal);
 
     /// <summary>Gets each question's key and members as checked, in file order. Complete when <see cref="QuestionsValid"/> is set.</summary>
     internal List<KeyValuePair<string, Dictionary<string, JsonElement>>> Questions { get; } = [];
 
     /// <summary>Gets the expected answers as checked, by question key. Complete when <see cref="Validate"/> returns <see langword="true"/>.</summary>
-    internal Dictionary<string, JsonElement> ExpectedMembers { get; private set; } = [];
+    internal Dictionary<string, JsonElement> ExpectedMembers { get; private set; } = new(StringComparer.Ordinal);
 
     /// <summary>Validates the line and reports whether it had no problem.</summary>
     internal bool Validate(JsonElement root)

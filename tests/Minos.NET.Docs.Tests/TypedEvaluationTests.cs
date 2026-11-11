@@ -231,7 +231,7 @@ public sealed class TypedEvaluationTests
         Assert.True(DecisionContent.FromUtf8Json("\"plain text\""u8).TryGetString(out _));
         Assert.Equal("plain text", DecisionContent.FromUtf8Json("\"plain text\""u8).ToString());
 
-        var number = (JsonTypeInfo<int>)JsonSerializerOptions.Default.GetTypeInfo(typeof(int));
+        var number = JsonSerializerOptions.Default.GetTypeInfo<int>();
         Assert.Throws<ArgumentException>(() => DecisionContent.FromValue(42, number));
         Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("42"u8));
         Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("true"u8));

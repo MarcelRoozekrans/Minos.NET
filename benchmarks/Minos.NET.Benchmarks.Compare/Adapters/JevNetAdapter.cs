@@ -1,4 +1,5 @@
 using Jev.Net;
+using JevNetContent = Jev.Net.JsonContent;
 using JevNetChoice = Jev.Net.Choice;
 using JevNetClient = Jev.Net.TypeSafeClient;
 using JevNetNoul = Jev.Net.Noul;
@@ -32,7 +33,7 @@ public sealed class JevNetAdapter : IClientAdapter, IUsesBenchmarkTransport
             Retry = JevNetRetryPolicy.None,
         });
 
-        var criteria = new Dictionary<string, JsonContent?>(StringComparer.Ordinal);
+        var criteria = new Dictionary<string, JevNetContent?>(StringComparer.Ordinal);
         foreach (var (option, description) in Workload.IntentOptions)
         {
             criteria[option] = description;

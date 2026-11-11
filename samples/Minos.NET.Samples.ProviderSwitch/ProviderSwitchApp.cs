@@ -29,8 +29,8 @@ public static class ProviderSwitchApp
         }
         catch (ArgumentException e)
         {
-            await error.WriteLineAsync(e.Message).ConfigureAwait(false);
-            await error.WriteLineAsync(Usage).ConfigureAwait(false);
+            await error.WriteLineAsync(e.Message, CancellationToken.None).ConfigureAwait(false);
+            await error.WriteLineAsync(Usage, CancellationToken.None).ConfigureAwait(false);
             return 2;
         }
 
@@ -50,7 +50,7 @@ public static class ProviderSwitchApp
         catch (InvalidOperationException e)
         {
             builder.Configuration.Dispose();
-            await error.WriteLineAsync(e.Message).ConfigureAwait(false);
+            await error.WriteLineAsync(e.Message, CancellationToken.None).ConfigureAwait(false);
             return 2;
         }
 
@@ -65,20 +65,20 @@ public static class ProviderSwitchApp
         catch (FileNotFoundException e)
         {
             builder.Configuration.Dispose();
-            await error.WriteLineAsync(e.Message).ConfigureAwait(false);
+            await error.WriteLineAsync(e.Message, CancellationToken.None).ConfigureAwait(false);
             return 1;
         }
 
         using var host = builder.Build();
         var client = host.Services.GetRequiredService<IDecisionClient>();
         var report = await ProviderSwitchSample.RunAsync(client, provider, cancellationToken).ConfigureAwait(false);
-        await output.WriteAsync(report.Render()).ConfigureAwait(false);
+        await output.WriteAsync(report.Render(), CancellationToken.None).ConfigureAwait(false);
 
         if (arguments.Mode == SampleMode.Record && recordingsPath is not null)
         {
             Directory.CreateDirectory(Path.GetDirectoryName(recordingsPath)!);
             session.ToFile(provider, DateOnly.FromDateTime(DateTime.UtcNow)).Save(recordingsPath);
-            await output.WriteLineAsync("Recorded " + session.Count + " responses to " + recordingsPath).ConfigureAwait(false);
+            await output.WriteLineAsync("Recorded " + session.Count + " responses to " + recordingsPath, CancellationToken.None).ConfigureAwait(false);
         }
 
         return 0;

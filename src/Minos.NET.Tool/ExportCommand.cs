@@ -44,7 +44,7 @@ internal static class ExportCommand
 
         foreach (var problem in problems)
         {
-            await stderr.WriteLineAsync("line " + problem.Line.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + problem.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("line " + problem.Line.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + problem.Message, CancellationToken.None).ConfigureAwait(false);
         }
 
         ct.ThrowIfCancellationRequested();
@@ -71,16 +71,16 @@ internal static class ExportCommand
             throw;
         }
 
-        await stderr.WriteLineAsync(summary.ToString()).ConfigureAwait(false);
+        await stderr.WriteLineAsync(summary.ToString(), CancellationToken.None).ConfigureAwait(false);
         if (summary.ItemsWritten == 0)
         {
             CommandSupport.DeleteBoth(datasetPath, signalsPath);
-            await stderr.WriteLineAsync("Nothing to export: no decision has a confirmed outcome that makes a dataset item.").ConfigureAwait(false);
+            await stderr.WriteLineAsync("Nothing to export: no decision has a confirmed outcome that makes a dataset item.", CancellationToken.None).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
-        await stdout.WriteLineAsync(datasetPath).ConfigureAwait(false);
-        await stdout.WriteLineAsync(signalsPath).ConfigureAwait(false);
+        await stdout.WriteLineAsync(datasetPath, CancellationToken.None).ConfigureAwait(false);
+        await stdout.WriteLineAsync(signalsPath, CancellationToken.None).ConfigureAwait(false);
         return ExitCodes.Success;
     }
 }
