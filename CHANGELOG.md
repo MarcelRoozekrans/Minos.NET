@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.12.0...v1.13.0) (2026-11-11)
+
+
+### Features
+
+* add net11.0 target ([20ee9e4](https://github.com/MarcelRoozekrans/Minos.NET/commit/20ee9e412a7e546db819d1437e2d4a9ce2df39ae))
+
 ## [1.12.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.2...v1.12.0) (2026-11-07)
 
 
