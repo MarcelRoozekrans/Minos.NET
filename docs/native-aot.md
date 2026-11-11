@@ -227,7 +227,7 @@ regression cannot reach a release unnoticed.
 | `NeutralEvaluateRoundTripWhileListening` | A neutral call with the listeners attached. | 4928 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
-| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 64 B per call, a tolerance for the noise of a counter that sees every thread, set over 60 runs; an enabled logger adds 196 B or more. | no byte budget |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger, each suspended on a pending handler task and resumed on the measuring thread, so every call takes the path that boxes the wrappers' state machines and the thread's own allocation counter sees all of it. Checks the disabled ones add no more than 64 B per call; an enabled logger adds 248 B on net10.0 and net11.0. | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The least of three windows of 500 calls, with no tolerance. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes
