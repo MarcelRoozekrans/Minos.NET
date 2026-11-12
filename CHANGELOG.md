@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.13.0...v1.13.1) (2026-11-12)
+
+
+### Bug Fixes
+
+* restore green CI on net11 (advisory pin, decisions analyzers, aot-smoke guard) ([#367](https://github.com/MarcelRoozekrans/Minos.NET/issues/367)) ([b25441a](https://github.com/MarcelRoozekrans/Minos.NET/commit/b25441aa10f5acd79c1f117c4e1c148f030bdde7))
+
 ## [1.13.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.12.0...v1.13.0) (2026-11-11)
 
 
