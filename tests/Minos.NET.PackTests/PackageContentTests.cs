@@ -1,5 +1,8 @@
 using System.IO.Compression;
+using System.Reflection.Metadata;
+using System.Reflection.PortableExecutable;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
 
@@ -52,14 +55,47 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
     public PackageContentTests(PackFixture fixture) => _fixture = fixture;
 
+    // Go to Definition into the package needs the PDB, and no symbol server setting should be needed to find it: each
+    // shipped DLL embeds its PDB, whose Source Link map sends the debugger to this repository's sources on GitHub.
+    [Theory]
+    [InlineData("lib/net10.0/Minos.NET.dll")]
+    [InlineData("lib/net11.0/Minos.NET.dll")]
+    [InlineData("analyzers/dotnet/cs/Minos.NET.Generator.dll")]
+    [InlineData("analyzers/dotnet/cs/Minos.NET.Analyzers.dll")]
+    [InlineData("analyzers/dotnet/cs/Minos.NET.CodeFixes.dll")]
+    public void ShipsEachDll_WithAnEmbeddedPdbAndASourceLinkMap(string dll)
+    {
+        var sourceLinkKind = new Guid("CC110556-A091-4D38-9FEC-25AB9A351A6A");
+        using var archive = ZipFile.OpenRead(_fixture.NupkgPath);
+        var entry = archive.GetEntry(dll);
+        Assert.NotNull(entry);
+        using var image = new MemoryStream();
+        using (var stream = entry.Open())
+        {
+            stream.CopyTo(image);
+        }
+
+        image.Position = 0;
+        using var pe = new PEReader(image);
+        var embedded = pe.ReadDebugDirectory().Where(d => d.Type == DebugDirectoryEntryType.EmbeddedPortablePdb).ToList();
+        Assert.True(embedded.Count == 1, $"{dll} has no embedded PDB; dotnet pack shipped it without its symbols.");
+        using var provider = pe.ReadEmbeddedPortablePdbDebugDirectoryData(embedded[0]);
+        var pdb = provider.GetMetadataReader();
+        var sourceLink = pdb.CustomDebugInformation
+            .Select(pdb.GetCustomDebugInformation)
+            .Where(info => pdb.GetGuid(info.Kind) == sourceLinkKind)
+            .Select(info => Encoding.UTF8.GetString(pdb.GetBlobBytes(info.Value)))
+            .SingleOrDefault();
+        Assert.NotNull(sourceLink);
+        Assert.Contains("https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/", sourceLink, StringComparison.Ordinal);
+    }
+
     [Fact]
-    public void Pack_WritesASymbolPackageBesideThePackage()
+    public void Pack_WritesNoSymbolPackage_SinceThePdbsAreEmbedded()
     {
         var symbols = Path.ChangeExtension(_fixture.NupkgPath, ".snupkg");
 
-        Assert.True(File.Exists(symbols), $"dotnet pack wrote no symbol package '{Path.GetFileName(symbols)}'.");
-        using var archive = ZipFile.OpenRead(symbols);
-        Assert.Contains(archive.Entries, entry => entry.FullName.EndsWith(".pdb", StringComparison.Ordinal));
+        Assert.False(File.Exists(symbols), $"dotnet pack wrote '{Path.GetFileName(symbols)}'; the PDBs are embedded in the DLLs instead.");
     }
 
     [Fact]

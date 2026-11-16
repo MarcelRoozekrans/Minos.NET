@@ -4,16 +4,23 @@ Usage: python3 tools/release/inspect_packages.py <directory> <version>
 
 A NuGet version can be unlisted but never deleted, so ci.yml runs this in pack-validate on every push and again in
 publish-nuget just before the push. It fails when the directory does not hold exactly the ten packages at the release
-version, each with its .snupkg symbol package; when a package's DLL was built without -p:MinosRelease=true, which
-Directory.Build.props versions <release>-local and which is compiled into the DLL; or when a package depends on another
-Minos package at a different version. Minos.NET.Tool is a dotnet tool: it must have the DotnetTool package type and no
-Minos dependencies, because it bundles its Minos assemblies in tools/<framework>/any, and each of those must carry the
-release version. Every package is inspected for each framework in FRAMEWORKS, so a package that lacks the net11.0 build fails. Standard library only.
+version; when a package's DLL was built without -p:MinosRelease=true, which Directory.Build.props versions
+<release>-local and which is compiled into the DLL; or when a package depends on another Minos package at a different
+version. Minos.NET.Tool is a dotnet tool: it must have the DotnetTool package type and no Minos dependencies, because it
+bundles its Minos assemblies in tools/<framework>/any, and each of those must carry the release version. Every package
+is inspected for each framework in FRAMEWORKS, so a package that lacks the net11.0 build fails.
+
+It also fails when a Minos DLL in a package has no embedded PDB whose Source Link maps it to this repository on GitHub,
+which Go to Definition into the package needs. That check is scripts/check-embedded-pdb/check-embedded-pdb.cs, which
+reads the PDB with System.Reflection.Metadata, so this script runs it with dotnet run and needs a .NET SDK on the PATH.
+Standard library only.
 """
 import json
 import pathlib
 import re
+import subprocess
 import sys
+import tempfile
 import zipfile
 
 # Each package and the Minos packages it must depend on, from the ProjectReferences in its csproj.
@@ -35,6 +42,12 @@ TOOL = "Minos.NET.Tool"
 # The target frameworks every package ships a build for, in lib/<framework> or tools/<framework>/any.
 FRAMEWORKS = ("net10.0", "net11.0")
 
+# The Source Link map in each embedded PDB sends the debugger to this prefix, followed by the commit and the path.
+SOURCE_LINK_PREFIX = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/"
+# The repository's System.Reflection.Metadata check of each DLL's embedded PDB and Source Link map.
+ROOT = pathlib.Path(__file__).resolve().parents[2]
+CHECKER = "scripts/check-embedded-pdb/check-embedded-pdb.cs"
+
 
 def _informational_version_found(dll: bytes, version: str) -> bool:
     # AssemblyInformationalVersion is stored as a length-prefixed UTF-8 string followed by 00 00: the release version,
@@ -46,19 +59,6 @@ def _informational_version_found(dll: bytes, version: str) -> bool:
         match.start() > 0 and dll[match.start() - 1] == len(match.group())
         for match in re.finditer(pattern, dll)
     )
-
-
-def _symbol_problems(directory: pathlib.Path, package: str, version: str) -> list[str]:
-    path = directory / f"{package}.{version}.snupkg"
-    if not path.is_file():
-        return [f"{package}: {path.name} is missing"]
-    try:
-        with zipfile.ZipFile(path) as archive:
-            if not any(name.endswith(f"{package}.pdb") for name in archive.namelist()):
-                return [f"{package}: {path.name} has no {package}.pdb"]
-    except zipfile.BadZipFile as exc:
-        return [f"{package}: {path.name} is not a valid symbol package: {exc}"]
-    return []
 
 
 def _runtime_asset_problems(package: str, directory: str, deps: bytes | None, packaged: set[str]) -> list[str]:
@@ -137,8 +137,6 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
             if name not in dll_names.values() and not _informational_version_found(content, version):
                 errors.append(f"{package}: bundled {name} has no informational version {version}; was it built with -p:MinosRelease=true?")
 
-    errors.extend(_symbol_problems(directory, package, version))
-
     accepted = {version, f"[{version}, )", f"[{version},)"}
     found: dict[str, list[str]] = {}
     for tag in re.findall(r"<dependency\b[^>]*>", nuspec):
@@ -173,6 +171,33 @@ def problems(directory: pathlib.Path, version: str) -> list[str]:
     return errors
 
 
+def own_dlls(directory: pathlib.Path, version: str, destination: pathlib.Path) -> list[pathlib.Path]:
+    """Extracts every Minos assembly of the release packages, in lib/, analyzers/ or tools/, to destination/<package>/
+    and returns their paths. Third-party assemblies the tool bundles are not ours, so they are left out."""
+    extracted: list[pathlib.Path] = []
+    for package in PACKAGES:
+        path = directory / f"{package}.{version}.nupkg"
+        if not path.is_file():
+            continue
+        with zipfile.ZipFile(path) as archive:
+            for name in sorted(archive.namelist()):
+                if (name.startswith(("lib/", "analyzers/", "tools/")) and name.endswith(".dll")
+                        and name.rsplit("/", 1)[-1].startswith("Minos.NET")):
+                    extracted.append(pathlib.Path(archive.extract(name, destination / package)))
+    return extracted
+
+
+def check_embedded_pdbs(dlls: list[pathlib.Path]) -> bool:
+    """Runs the System.Reflection.Metadata checker over the DLLs: each must embed its PDB, be a deterministic build, and
+    have a Source Link map that sends every source document to SOURCE_LINK_PREFIX. It prints one line per DLL."""
+    if not dlls:
+        print("ERROR: the packages hold no Minos DLL to check for an embedded PDB")
+        return False
+    command = ["dotnet", "run", CHECKER, "--", SOURCE_LINK_PREFIX, *(str(dll) for dll in dlls)]
+    sys.stdout.flush()  # keeps this script's lines ahead of the checker's in a log
+    return subprocess.run(command, cwd=ROOT, check=False).returncode == 0
+
+
 def main(argv: list[str]) -> int:
     if len(argv) != 2:
         print("usage: inspect_packages.py <directory> <version>", file=sys.stderr)
@@ -181,7 +206,9 @@ def main(argv: list[str]) -> int:
     errors = problems(directory, version)
     for error in errors:
         print(f"ERROR: {error}")
-    if errors:
+    with tempfile.TemporaryDirectory() as extracted:
+        pdbs_ok = check_embedded_pdbs(own_dlls(directory, version, pathlib.Path(extracted)))
+    if errors or not pdbs_ok:
         return 1
     print(f"OK: {', '.join(f'{package} {version}' for package in PACKAGES)} are ready to push")
     return 0

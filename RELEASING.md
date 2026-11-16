@@ -8,7 +8,7 @@ Releases are cut by release-please and published to nuget.org by `ci.yml`. Nothi
 2. Merging that PR tags `vX.Y.Z` and creates the GitHub release.
 3. `release-please.yml` then dispatches `ci.yml` on the tag with `publish_to_nuget=true`.
 4. On that run, the jobs `publish-nuget` needs, `build`, `aot-smoke`, `aot-surface` and `pack-validate`, run on the tagged commit. `publish-nuget` starts only after they pass.
-5. `publish-nuget` refuses a 0.x version, a prerelease, or a tag that is not the manifest's version. It then packs with `-p:MinosRelease=true`, inspects the packages, pushes the ten `.nupkg` files to nuget.org, and attaches them and their `.snupkg` files to the GitHub release. nuget.org takes each `.snupkg` with the same push as its `.nupkg`.
+5. `publish-nuget` refuses a 0.x version, a prerelease, or a tag that is not the manifest's version. It then packs with `-p:MinosRelease=true`, inspects the packages, pushes the ten `.nupkg` files to nuget.org, and attaches them to the GitHub release. There are no `.snupkg` symbol packages: each DLL embeds its PDB, with a Source Link map to the release commit, so Go to Definition shows the source without a symbol server. The inspection checks that with `scripts/check-embedded-pdb/check-embedded-pdb.cs`, which `inspect_packages.py` runs with `dotnet run`.
 
 While the version is 0.x, the dispatched run's `publish-nuget` job fails on purpose, with the message "0.x versions are not published". That red run is expected and nothing is pushed.
 
@@ -35,9 +35,6 @@ A push that died partway can be finished by dispatching the same run again on th
 With `resume=true` the push uses `--skip-duplicate`, so it skips the packages that already arrived. Dispatching on `main` publishes nothing, because the job runs only on a `v*` tag.
 
 A release run, without `resume`, does not skip anything: if a package is already on nuget.org at the release version, the run fails and names it. That version was then published by something other than this pipeline. Check what is on nuget.org before resuming; a published version can be unlisted but never replaced, so a wrong package means releasing the next patch version.
-
-A re-run skips a package that already arrived, and may not re-send its symbol package. If a symbol package is missing on nuget.org
-after a publish, it is attached to the GitHub release and can be uploaded on nuget.org's web upload page.
 
 ## When nuget.org refuses a push
 

@@ -217,8 +217,9 @@ jobs:
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
   # Packs the ten release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
-  # folder feed, on every push and pull request, so the release path is exercised long before release day. A folder
-  # feed silently drops .snupkg files, so symbol packages are checked by the inspection, not by the push. WorkflowWiringTests
+  # folder feed, on every push and pull request, so the release path is exercised long before release day. There is no
+  # .snupkg: the inspection runs scripts/check-embedded-pdb/check-embedded-pdb.cs, which checks that every Minos DLL
+  # embeds its PDB with a Source Link map, so the job needs the .NET SDK set up first. WorkflowWiringTests
   # pins the commands below; change them only together with it.
   pack-validate:
     runs-on: ubuntu-latest
@@ -329,7 +330,7 @@ jobs:
   # publish_to_nuget=true when it creates a release; a maintainer can dispatch it the same way to finish a push that
   # died partway, since --skip-duplicate makes a re-run safe. It runs after every other job on that exact commit, and it
   # refuses a 0.x version, a prerelease, and a tag that is not the manifest's version. The key comes from nuget.org's
-  # Trusted Publishing; no key is stored. A .snupkg beside its .nupkg is delivered with the same push. The pack must
+  # Trusted Publishing; no key is stored. The PDBs are embedded in the DLLs, so there is no .snupkg to push. The pack must
   # pass -p:MinosRelease=true: without it Directory.Build.props versions every build X.Y.Z-local, and the version is
   # compiled into the DLLs, so a pack after a build without the switch would ship release-numbered packages whose DLLs
   # and User-Agent still say -local. RELEASING.md has the procedure; WorkflowWiringTests pins the commands.
@@ -410,7 +411,7 @@ jobs:
       - name: Attach the packages to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber
+        run: gh release upload "$GITHUB_REF_NAME" artifacts/packages/*.nupkg --clobber
 
       # A CycloneDX SBOM of the solution, attached to the same release. The release exists by now: release-please
       # created it before dispatching this workflow, and this run is on the release tag, so github.ref_name is that tag.
