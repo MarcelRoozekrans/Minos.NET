@@ -32,7 +32,7 @@ ignores, and the DLL is never packed or shipped with a Minos.NET package.
 ### SDK and properties
 
 Upstream `global.json` pins SDK 10.0.401, but the build uses this repository's
-`global.json` (10.0.403, `rollForward` `latestMinor`), because the SDK is chosen
+`global.json` (11.0.100, `rollForward` `latestMinor`), because the SDK is chosen
 from the current directory and the script changes to the repo root before it
 builds, wherever it is called from. CI installs the SDK from the repo's
 `global.json`. The script passes
