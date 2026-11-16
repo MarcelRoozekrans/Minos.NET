@@ -75,7 +75,6 @@ abstractions. Job `upstream-decisions` runs `bash tools/upstream/build-decisions
 `dotnet build Minos.NET.slnx -c Decisions` and
 `dotnet test tests/Minos.NET.Extensions.AI.Decisions.Tests -c Decisions --no-build`. Do not add the
 `Microsoft.Extensions.AI.Abstractions` package to a project that imports `tools/upstream/UpstreamDecisions.props`.
-`tools/upstream/README.md` still names SDK 10.0.403; `global.json` is what holds.
 
 ## Conventions and gotchas
 

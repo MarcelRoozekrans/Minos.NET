@@ -44,7 +44,7 @@ jobs:
         with:
           persist-credentials: false
 
-      # The build runs from the repo root, so the SDK comes from this repo's global.json (10.0.403, latestMinor),
+      # The build runs from the repo root, so the SDK comes from this repo's global.json (11.0.100, latestMinor),
       # not from upstream's 10.0.401 pin.
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
