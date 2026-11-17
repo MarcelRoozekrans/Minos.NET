@@ -219,7 +219,7 @@ jobs:
   # Packs the ten release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
   # folder feed, on every push and pull request, so the release path is exercised long before release day. There is no
   # .snupkg: the inspection runs scripts/check-embedded-pdb/check-embedded-pdb.cs, which checks that every Minos DLL
-  # embeds its PDB with a Source Link map, so the job needs the .NET SDK set up first. WorkflowWiringTests
+  # embeds its PDB with a Source Link map to this checkout's commit, so the job needs the .NET SDK set up first. WorkflowWiringTests
   # pins the commands below; change them only together with it.
   pack-validate:
     runs-on: ubuntu-latest
