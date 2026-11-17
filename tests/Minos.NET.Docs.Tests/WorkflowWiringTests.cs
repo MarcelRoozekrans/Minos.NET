@@ -94,7 +94,8 @@ public sealed class WorkflowWiringTests
         Assert.Contains("uses: NuGet/login@v1", job, StringComparison.Ordinal);
         Assert.Contains("user: ${{ vars.NUGET_USER }}", job, StringComparison.Ordinal);
         Assert.Contains("dotnet nuget push \"artifacts/packages/*.nupkg\" --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" $skip_duplicate", job, StringComparison.Ordinal);
-        Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber", job, StringComparison.Ordinal);
+        Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" artifacts/packages/*.nupkg --clobber", job, StringComparison.Ordinal);
+        Assert.DoesNotContain(".snupkg", job, StringComparison.Ordinal);
         Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
         Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
     }

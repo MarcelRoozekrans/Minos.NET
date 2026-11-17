@@ -1,10 +1,14 @@
-"""Unit tests for inspect_packages.py: fake packages built with zipfile, no dotnet needed."""
+"""Unit tests for inspect_packages.py: fake packages built with zipfile, no dotnet needed. The embedded PDB check is
+scripts/check-embedded-pdb/check-embedded-pdb.cs; these tests only check which DLLs it is given, with dotnet mocked."""
+import contextlib
 import io
 import json
 import pathlib
+import subprocess
 import tempfile
 import unittest
 import zipfile
+from unittest import mock
 
 import inspect_packages
 
@@ -20,12 +24,17 @@ def informational(version: str) -> bytes:
     return b"\x01\x00" + bytes([len(text)]) + text + b"\x00\x00"
 
 
+def fake_dll(content: bytes) -> bytes:
+    """Stands in for a DLL: the inspection only searches its bytes for the informational version attribute."""
+    return b"MZ" + content
+
+
 def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                   dll_version: str | None = None, nuspec_version: str | None = None,
                   dependency_version: str | None = None, nuspec_id: str | None = None,
                   extra_dependency: str | None = None, dependency_xml: str | None = None,
-                  symbols: bytes | None = None, with_dll: bool = True,
-                  with_symbols: bool = True, drop_dependency: str | None = None,
+                  with_dll: bool = True,
+                  extra_dlls: dict[str, bytes] | None = None, drop_dependency: str | None = None,
                   package_type: str | None = None, bundled: dict[str, str] | None = None,
                   deps_extra: str | None = None, with_deps: bool = True,
                   without_framework: str | None = None) -> None:
@@ -49,7 +58,7 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
               f'<dependencies><group targetFramework="net10.0">{dependencies}</group></dependencies>'
               f'</metadata></package>')
     # FileVersion is a four-part string that must never count as the informational version.
-    dll = b"MZ fake " + b"\x01\x00\x071.0.0.0\x00\x00" + informational(dll_version or (version + "+abc1234"))
+    dll = fake_dll(b"\x01\x00\x071.0.0.0\x00\x00" + informational(dll_version or (version + "+abc1234")))
     with zipfile.ZipFile(directory / f"{package_id}.{version}.nupkg", "w") as archive:
         archive.writestr(f"{package_id}.nuspec", nuspec)
         for framework in frameworks:
@@ -58,7 +67,7 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                     versions = {name: version + "+abc1234" for name in TOOL_ASSEMBLIES}
                     versions.update(bundled or {})
                     for name, bundled_version in versions.items():
-                        archive.writestr(f"tools/{framework}/any/{name}.dll", b"MZ fake " + informational(bundled_version))
+                        archive.writestr(f"tools/{framework}/any/{name}.dll", fake_dll(informational(bundled_version)))
                 archive.writestr(f"tools/{framework}/any/System.CommandLine.dll", b"MZ third party")
                 if with_deps:
                     runtime = {f"{name}.dll": {} for name in TOOL_ASSEMBLIES}
@@ -69,12 +78,8 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                     archive.writestr(f"tools/{framework}/any/Minos.NET.Tool.deps.json", json.dumps(deps))
             elif with_dll:
                 archive.writestr(f"lib/{framework}/{package_id}.dll", dll)
-    if with_symbols:
-        if symbols is not None:
-            (directory / f"{package_id}.{version}.snupkg").write_bytes(symbols)
-        else:
-            with zipfile.ZipFile(directory / f"{package_id}.{version}.snupkg", "w") as archive:
-                archive.writestr(f"lib/net10.0/{package_id}.pdb", b"pdb")
+        for name, content in (extra_dlls or {}).items():
+            archive.writestr(name, content)
 
 
 class InspectPackagesTests(unittest.TestCase):
@@ -172,16 +177,6 @@ class InspectPackagesTests(unittest.TestCase):
         errors = inspect_packages.problems(self.directory, VERSION)
         self.assertTrue(any("unexpected" in error and "Minos.NET.0.9.0.nupkg" in error for error in errors), errors)
 
-    def test_a_missing_symbol_package_fails(self) -> None:
-        self.write_all(**{"Minos.NET.OpenAI": {"with_symbols": False}})
-        errors = inspect_packages.problems(self.directory, VERSION)
-        self.assertTrue(any("Minos.NET.OpenAI" in error and ".snupkg" in error for error in errors), errors)
-
-    def test_a_tool_without_a_symbol_package_fails(self) -> None:
-        self.write_all(**{TOOL: {"with_symbols": False}})
-        errors = inspect_packages.problems(self.directory, VERSION)
-        self.assertTrue(any(TOOL in error and ".snupkg" in error for error in errors), errors)
-
     def test_a_local_build_fails(self) -> None:
         self.write_all(**{"Minos.NET.SystemOne": {"dll_version": "1.0.0-local+abc1234"}})
         errors = inspect_packages.problems(self.directory, VERSION)
@@ -249,19 +244,6 @@ class InspectPackagesTests(unittest.TestCase):
         self.assertTrue(any("Minos.NET depends on Minos.NET.Generator, which is not one of its expected Minos dependencies" in error
                             for error in errors), errors)
 
-    def test_an_empty_symbol_package_fails(self) -> None:
-        self.write_all(**{"Minos.NET.Caching": {"symbols": b""}})
-        errors = inspect_packages.problems(self.directory, VERSION)
-        self.assertTrue(any("Minos.NET.Caching" in error and "not a valid symbol package" in error for error in errors), errors)
-
-    def test_a_symbol_package_without_the_pdb_fails(self) -> None:
-        buffer = io.BytesIO()
-        with zipfile.ZipFile(buffer, "w") as archive:
-            archive.writestr("readme.txt", b"x")
-        self.write_all(**{"Minos.NET.Caching": {"symbols": buffer.getvalue()}})
-        errors = inspect_packages.problems(self.directory, VERSION)
-        self.assertTrue(any("Minos.NET.Caching" in error and "has no Minos.NET.Caching.pdb" in error for error in errors), errors)
-
     def test_a_nuspec_with_another_id_fails(self) -> None:
         self.write_all(**{"Minos.NET.Caching": {"nuspec_id": "Minos.NET.Other"}})
         errors = inspect_packages.problems(self.directory, VERSION)
@@ -280,6 +262,50 @@ class InspectPackagesTests(unittest.TestCase):
 
     def test_main_reports_usage(self) -> None:
         self.assertEqual(2, inspect_packages.main([]))
+
+    def test_own_dlls_are_the_minos_assemblies_in_lib_analyzers_and_tools(self) -> None:
+        analyzer = "analyzers/dotnet/cs/Minos.NET.Generator.dll"
+        self.write_all(**{"Minos.NET": {"extra_dlls": {analyzer: fake_dll(b"")}}})
+        with tempfile.TemporaryDirectory() as extracted:
+            destination = pathlib.Path(extracted)
+            dlls = inspect_packages.own_dlls(self.directory, VERSION, destination)
+            self.assertTrue(all(dll.is_file() for dll in dlls), dlls)
+            names = {dll.relative_to(destination).as_posix() for dll in dlls}
+        self.assertIn(f"Minos.NET/{analyzer}", names)
+        self.assertIn("Minos.NET.Caching/lib/net11.0/Minos.NET.Caching.dll", names)
+        self.assertIn(f"{TOOL}/tools/net10.0/any/Minos.NET.Conformance.dll", names)
+        # Ten packages: nine libraries with two frameworks each, the tool with its six assemblies per framework, and the analyzer.
+        self.assertEqual(9 * 2 + len(TOOL_ASSEMBLIES) * 2 + 1, len(names))
+        self.assertFalse(any("System.CommandLine" in name for name in names), names)
+
+    def test_the_checker_gets_the_prefix_and_every_dll(self) -> None:
+        dlls = [pathlib.Path("a/Minos.NET.dll"), pathlib.Path("b/Minos.NET.Tool.dll")]
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run:
+            self.assertTrue(inspect_packages.check_embedded_pdbs(dlls))
+        command = run.call_args.args[0]
+        self.assertEqual(["dotnet", "run", inspect_packages.CHECKER, "--", inspect_packages.SOURCE_LINK_PREFIX], command[:5])
+        self.assertEqual([str(dll) for dll in dlls], command[5:])
+        self.assertEqual(inspect_packages.ROOT, run.call_args.kwargs["cwd"])
+
+    def test_no_dll_to_check_fails(self) -> None:
+        with mock.patch.object(subprocess, "run") as run:
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertFalse(inspect_packages.check_embedded_pdbs([]))
+        run.assert_not_called()
+
+    def test_main_passes_when_the_packages_and_the_checker_pass(self) -> None:
+        self.write_all()
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)):
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(0, inspect_packages.main([str(self.directory), VERSION]))
+
+    def test_main_fails_when_the_checker_fails(self) -> None:
+        self.write_all()
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 1)):
+            self.assertEqual(1, inspect_packages.main([str(self.directory), VERSION]))
+
+    def test_the_checker_script_exists(self) -> None:
+        self.assertTrue((inspect_packages.ROOT / inspect_packages.CHECKER).is_file())
 
 
 if __name__ == "__main__":

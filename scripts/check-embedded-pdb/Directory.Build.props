@@ -1,0 +1,5 @@
+<!-- Stops the repo's Directory.Build.props from reaching check-embedded-pdb.cs: that file sets the target frameworks,
+     warnings as errors and analyzers for the library projects, none of which this one-file app needs. The empty
+     Directory.Build.targets and Directory.Packages.props next to it do the same for package validation and central
+     package management. -->
+<Project />

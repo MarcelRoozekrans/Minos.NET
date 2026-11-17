@@ -7,7 +7,8 @@
     <Description>The minos command line tool for Minos.NET: calibrates a decision model against a labelled dataset, builds the calibration report again from saved results, and checks that a provider conforms to the decision protocol.</Description>
     <PackageTags>minos;decisions;decision-model;dotnet-tool;calibration;conformance;evaluation</PackageTags>
     <PackAsTool>true</PackAsTool>
-    <!-- Keep the referenced projects' .pdb symbols but not their XML documentation files, which a tool has no use for. -->
+    <!-- Leave out the referenced projects' XML documentation files, which a tool has no use for. An empty value would mean
+         the SDK default, which includes .xml, so only .pdb is allowed; the PDBs are embedded in the DLLs, so none is copied. -->
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
     <ToolCommandName>minos</ToolCommandName>
     <!-- The SDK turns package validation off for a tool, so there is no baseline to set here. -->
