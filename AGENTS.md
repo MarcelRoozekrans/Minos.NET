@@ -51,6 +51,7 @@ Other CI jobs:
   `python3 -m unittest discover -s tools/release -p "test_*.py"` and
   `python3 tools/release/inspect_packages.py artifacts/packages "$PACKAGE_VERSION"`, with `PACKAGE_VERSION` the `"."`
   entry of `.release-please-manifest.json`: `PACKAGE_VERSION=$(jq -r '."."' .release-please-manifest.json)`.
+  The inspection also runs the embedded-PDB check with the prefix pinned to `git rev-parse HEAD` of that checkout.
   `tests/Minos.NET.Docs.Tests/WorkflowWiringTests.cs` pins these commands; change them together.
 - `release-tracking`, release PRs only: `python3 tools/release/ship_release_tracking.py --check`.
 - `benchmarks.yml`, job `smoke`: `dotnet build benchmarks/Minos.NET.Benchmarks -c Release`, then

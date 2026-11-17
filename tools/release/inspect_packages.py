@@ -10,8 +10,9 @@ version. Minos.NET.Tool is a dotnet tool: it must have the DotnetTool package ty
 bundles its Minos assemblies in tools/<framework>/any, and each of those must carry the release version. Every package
 is inspected for each framework in FRAMEWORKS, so a package that lacks the net11.0 build fails.
 
-It also fails when a Minos DLL in a package has no embedded PDB whose Source Link maps it to this repository on GitHub,
-which Go to Definition into the package needs. That check is scripts/check-embedded-pdb/check-embedded-pdb.cs, which
+It also fails when a Minos DLL in a package has no embedded PDB whose Source Link maps every source document, not only
+the C# ones, to this repository on GitHub at the commit HEAD of this checkout, which Go to Definition into the package
+needs. A map to main or to another commit fails. That check is scripts/check-embedded-pdb/check-embedded-pdb.cs, which
 reads the PDB with System.Reflection.Metadata, so this script runs it with dotnet run and needs a .NET SDK on the PATH.
 Standard library only.
 """
@@ -43,6 +44,7 @@ TOOL = "Minos.NET.Tool"
 FRAMEWORKS = ("net10.0", "net11.0")
 
 # The Source Link map in each embedded PDB sends the debugger to this prefix, followed by the commit and the path.
+# The check expects the prefix with the commit appended, so a map to main or to another commit fails.
 SOURCE_LINK_PREFIX = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/"
 # The repository's System.Reflection.Metadata check of each DLL's embedded PDB and Source Link map.
 ROOT = pathlib.Path(__file__).resolve().parents[2]
@@ -187,13 +189,25 @@ def own_dlls(directory: pathlib.Path, version: str, destination: pathlib.Path) -
     return extracted
 
 
-def check_embedded_pdbs(dlls: list[pathlib.Path]) -> bool:
+def head_commit() -> str | None:
+    """The commit of the checkout the packages were packed from, or None when git cannot tell. Both pack jobs pack in the
+    same job and checkout that runs this script, so HEAD is the commit Source Link stamped into the DLLs."""
+    try:
+        result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=False, capture_output=True, text=True)
+    except OSError:
+        return None
+    commit = result.stdout.strip()
+    return commit if result.returncode == 0 and re.fullmatch(r"[0-9a-f]{40}", commit) else None
+
+
+def check_embedded_pdbs(dlls: list[pathlib.Path], commit: str) -> bool:
     """Runs the System.Reflection.Metadata checker over the DLLs: each must embed its PDB, be a deterministic build, and
-    have a Source Link map that sends every source document to SOURCE_LINK_PREFIX. It prints one line per DLL."""
+    have a Source Link map that sends every source document, of any file type, to SOURCE_LINK_PREFIX followed by commit.
+    A map to main or to another commit fails. It prints one line per DLL."""
     if not dlls:
         print("ERROR: the packages hold no Minos DLL to check for an embedded PDB")
         return False
-    command = ["dotnet", "run", CHECKER, "--", SOURCE_LINK_PREFIX, *(str(dll) for dll in dlls)]
+    command = ["dotnet", "run", CHECKER, "--", f"{SOURCE_LINK_PREFIX}{commit}/", *(str(dll) for dll in dlls)]
     sys.stdout.flush()  # keeps this script's lines ahead of the checker's in a log
     return subprocess.run(command, cwd=ROOT, check=False).returncode == 0
 
@@ -206,8 +220,12 @@ def main(argv: list[str]) -> int:
     errors = problems(directory, version)
     for error in errors:
         print(f"ERROR: {error}")
+    commit = head_commit()
+    if commit is None:
+        print(f"ERROR: git rev-parse HEAD gave no commit in {ROOT}, so the Source Link prefix cannot be pinned")
+        return 1
     with tempfile.TemporaryDirectory() as extracted:
-        pdbs_ok = check_embedded_pdbs(own_dlls(directory, version, pathlib.Path(extracted)))
+        pdbs_ok = check_embedded_pdbs(own_dlls(directory, version, pathlib.Path(extracted)), commit)
     if errors or not pdbs_ok:
         return 1
     print(f"OK: {', '.join(f'{package} {version}' for package in PACKAGES)} are ready to push")
