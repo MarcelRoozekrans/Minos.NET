@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.13.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.13.1...v1.13.2) (2026-11-17)
+
+
+### Bug Fixes
+
+* embed PDBs so Go to Definition shows the package source ([34acf28](https://github.com/MarcelRoozekrans/Minos.NET/commit/34acf287bd5e4b33eb84f9ed9cb7c5dce9fcdca9))
+
 ## [1.13.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.13.0...v1.13.1) (2026-11-12)
 
 
