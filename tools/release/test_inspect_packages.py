@@ -12,6 +12,7 @@ from unittest import mock
 
 import inspect_packages
 
+COMMIT = "0123456789abcdef0123456789abcdef01234567"
 VERSION = "1.0.0"
 TOOL = "Minos.NET.Tool"
 # The Minos assemblies the tool bundles in tools/<framework>/any.
@@ -281,28 +282,59 @@ class InspectPackagesTests(unittest.TestCase):
     def test_the_checker_gets_the_prefix_and_every_dll(self) -> None:
         dlls = [pathlib.Path("a/Minos.NET.dll"), pathlib.Path("b/Minos.NET.Tool.dll")]
         with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run:
-            self.assertTrue(inspect_packages.check_embedded_pdbs(dlls))
+            self.assertTrue(inspect_packages.check_embedded_pdbs(dlls, COMMIT))
         command = run.call_args.args[0]
-        self.assertEqual(["dotnet", "run", inspect_packages.CHECKER, "--", inspect_packages.SOURCE_LINK_PREFIX], command[:5])
+        # The prefix carries the commit, so a map to main or to another commit fails the checker.
+        prefix = f"https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/{COMMIT}/"
+        self.assertEqual(["dotnet", "run", inspect_packages.CHECKER, "--", prefix], command[:5])
         self.assertEqual([str(dll) for dll in dlls], command[5:])
         self.assertEqual(inspect_packages.ROOT, run.call_args.kwargs["cwd"])
 
     def test_no_dll_to_check_fails(self) -> None:
         with mock.patch.object(subprocess, "run") as run:
             with contextlib.redirect_stdout(io.StringIO()):
-                self.assertFalse(inspect_packages.check_embedded_pdbs([]))
+                self.assertFalse(inspect_packages.check_embedded_pdbs([], COMMIT))
         run.assert_not_called()
 
     def test_main_passes_when_the_packages_and_the_checker_pass(self) -> None:
         self.write_all()
-        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)):
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)), \
+                mock.patch.object(inspect_packages, "head_commit", return_value=COMMIT):
             with contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(0, inspect_packages.main([str(self.directory), VERSION]))
 
     def test_main_fails_when_the_checker_fails(self) -> None:
         self.write_all()
-        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 1)):
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 1)), \
+                mock.patch.object(inspect_packages, "head_commit", return_value=COMMIT):
             self.assertEqual(1, inspect_packages.main([str(self.directory), VERSION]))
+
+    def test_main_pins_the_prefix_to_the_commit_it_reads(self) -> None:
+        self.write_all()
+        with mock.patch.object(subprocess, "run", return_value=subprocess.CompletedProcess([], 0)) as run, \
+                mock.patch.object(inspect_packages, "head_commit", return_value=COMMIT), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(0, inspect_packages.main([str(self.directory), VERSION]))
+        self.assertEqual(f"https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/{COMMIT}/", run.call_args.args[0][4])
+
+    def test_main_fails_when_git_gives_no_commit(self) -> None:
+        self.write_all()
+        with mock.patch.object(subprocess, "run") as run, mock.patch.object(inspect_packages, "head_commit", return_value=None), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(1, inspect_packages.main([str(self.directory), VERSION]))
+        run.assert_not_called()
+
+    def test_head_commit_reads_the_full_sha(self) -> None:
+        done = subprocess.CompletedProcess([], 0, stdout=COMMIT + "\n")
+        with mock.patch.object(subprocess, "run", return_value=done) as run:
+            self.assertEqual(COMMIT, inspect_packages.head_commit())
+        self.assertEqual(["git", "rev-parse", "HEAD"], run.call_args.args[0])
+        self.assertEqual(inspect_packages.ROOT, run.call_args.kwargs["cwd"])
+
+    def test_head_commit_rejects_a_failed_or_odd_answer(self) -> None:
+        for done in (subprocess.CompletedProcess([], 128, stdout=""), subprocess.CompletedProcess([], 0, stdout="HEAD\n")):
+            with mock.patch.object(subprocess, "run", return_value=done):
+                self.assertIsNone(inspect_packages.head_commit())
 
     def test_the_checker_script_exists(self) -> None:
         self.assertTrue((inspect_packages.ROOT / inspect_packages.CHECKER).is_file())
