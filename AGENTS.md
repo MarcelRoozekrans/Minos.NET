@@ -6,6 +6,10 @@ source generator and the MIN analyzers bundled in), the provider clients `System
 `Extensions.AI`, the pipeline stages `Caching`, `RateLimiting` and `Recording`, `DependencyInjection`,
 `Evaluation`, and the `minos` dotnet tool (`Minos.NET.Tool`). It runs under Native AOT.
 
+## Product-line standards
+
+This repository is part of a .NET product line. Read the [product-line standards](https://github.com/MarcelRoozekrans/product-line/blob/main/standards.md) before changing anything: they hold the rules for every product, including how to build (a failing test first, the cause before a fix, build and test output before calling work done) and what may appear in commits, pull requests and issues. Build sessions do not use superpowers. This file adds what is specific to this repository.
+
 ## Layout
 
 - `src/Minos.NET.Generator`, `Minos.NET.Analyzers` and `Minos.NET.CodeFixes` are Roslyn components
@@ -86,9 +90,10 @@ abstractions. Job `upstream-decisions` runs `bash tools/upstream/build-decisions
   `PublicAPI.Shipped.txt`, which includes `Extensions.AI.Decisions`, also has a `PublicAPI.Shipped.txt` and `PublicAPI.Unshipped.txt`. Put new public API in
   `Unshipped`; do not edit `Shipped`. The analyzers keep `AnalyzerReleases.*.md` the same way. Release PRs
   move the entries with `tools/release/ship_release_tracking.py`.
-- Package validation compares each package with its first nuget.org version. The baseline is 1.0.1, set in
-  `Directory.Build.targets`; `Evaluation` (1.2.0), `Recording` (1.3.0) and `Extensions.AI` (1.5.0) set their own
-  `PackageValidationBaselineVersion` in their csproj. Raise a baseline only at a major release.
+- Package validation should compare each package with its last release (product-line ADR-252). Today it
+  still compares with the first nuget.org version: the baseline is 1.0.1, set in `Directory.Build.targets`;
+  `Evaluation` (1.2.0), `Recording` (1.3.0) and `Extensions.AI` (1.5.0) set their own
+  `PackageValidationBaselineVersion` in their csproj. Moving every baseline to the last release is tracked in #390.
 - An application project clears `TargetFrameworks` and sets `TargetFramework` to
   `$(MinosAppTargetFramework)`; `dotnet publish` refuses `TargetFrameworks`.
 - Exception to the repo-wide `net10.0;net11.0` default: `benchmarks/Minos.NET.Benchmarks` and
