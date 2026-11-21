@@ -6,6 +6,10 @@ source generator and the MIN analyzers bundled in), the provider clients `System
 `Extensions.AI`, the pipeline stages `Caching`, `RateLimiting` and `Recording`, `DependencyInjection`,
 `Evaluation`, and the `minos` dotnet tool (`Minos.NET.Tool`). It runs under Native AOT.
 
+## Product-line standards
+
+This repository is part of a .NET product line. Read the [product-line standards](https://github.com/MarcelRoozekrans/product-line/blob/main/standards.md) before changing anything: they hold the rules for every product, including how to build (a failing test first, the cause before a fix, build and test output before calling work done) and what may appear in commits, pull requests and issues. Build sessions do not use superpowers. This file adds what is specific to this repository.
+
 ## Layout
 
 - `src/Minos.NET.Generator`, `Minos.NET.Analyzers` and `Minos.NET.CodeFixes` are Roslyn components
