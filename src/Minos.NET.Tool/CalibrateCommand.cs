@@ -112,7 +112,7 @@ internal static class CalibrateCommand
             {
                 results = await DatasetRunner.RunAsync(client, loaded.Value, runOptions, ct).ConfigureAwait(false);
             }
-            catch (DatasetRunException ex)
+            catch (DatasetRunException ex) when (ex.PartialResults is not null)
             {
                 stopped = ex;
                 results = ex.PartialResults;

@@ -275,7 +275,10 @@ internal static class EvaluationChecks
             "a report's bins, sweep, latency, cost, errors and models keep their values under Native AOT");
     }
 
+    [Covers("Minos.Evaluation.DatasetRunException.DatasetRunException() -> void")]
     [Covers("Minos.Evaluation.DatasetRunException.DatasetRunException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception! innerException) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunException.DatasetRunException(string! message) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunException.DatasetRunException(string! message, System.Exception? innerException) -> void")]
     public static async Task AStoppedRunKeepsItsPaidResults()
     {
         var dataset = Dataset();
@@ -291,6 +294,8 @@ internal static class EvaluationChecks
 
         var partial = stopped?.PartialResults;
         var rewrapped = partial is null ? null : new DatasetRunException(partial, new InvalidOperationException("again"));
+        var inner = new InvalidOperationException("inner");
+        DatasetRunException[] standard = [new(), new("stopped"), new("stopped", inner)];
         CalibrationReport? report = null;
         if (partial is not null && CalibrationReport.Create(partial, dataset) is { IsSuccess: true } created)
         {
@@ -302,6 +307,10 @@ internal static class EvaluationChecks
                 && partial is { Header: { Partial: true, ItemCount: 2 } }
                 && partial.Items.Count == 2
                 && ReferenceEquals(rewrapped?.PartialResults, partial)
+                && Array.TrueForAll(standard, ex => ex.PartialResults is null)
+                && standard[0].Message.Length > 0
+                && string.Equals(standard[1].Message, "stopped", StringComparison.Ordinal)
+                && ReferenceEquals(standard[2].InnerException, inner)
                 && string.Equals(partial.Items[1].Id, "b", StringComparison.Ordinal)
                 && report is { Partial: true, DatasetItemCount: 4 }
                 && report.ToMarkdown().Contains("Partial run: 2 of 4 items", StringComparison.Ordinal),

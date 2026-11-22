@@ -1,1 +1,6 @@
 #nullable enable
+*REMOVED*Minos.Evaluation.DatasetRunException.PartialResults.get -> Minos.Evaluation.EvaluationResults!
+Minos.Evaluation.DatasetRunException.DatasetRunException() -> void
+Minos.Evaluation.DatasetRunException.DatasetRunException(string! message) -> void
+Minos.Evaluation.DatasetRunException.DatasetRunException(string! message, System.Exception? innerException) -> void
+Minos.Evaluation.DatasetRunException.PartialResults.get -> Minos.Evaluation.EvaluationResults?

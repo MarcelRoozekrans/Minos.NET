@@ -301,6 +301,10 @@ exception carries the items that finished, as `PartialResults`, in dataset order
 - An exception from the client or the `Progress` receiver is thrown as the inner exception of a `DatasetRunException`.
   Only the first fault is kept.
 
+`PartialResults` is nullable on both exceptions. The runner always sets it, so it is not `null` when
+`DatasetRunner` throws; it is `null` only when other code makes the exception with a constructor that takes no
+results. Check it before you use it.
+
 Your cancellation wins over a fault: when your token is cancelled while a fault is stopping the run, you get the
 `DatasetRunCanceledException`. A fault that came before your cancellation is its `InnerException`; one that comes after
 it is dropped. In-flight requests that end cancelled are left out of the partial results, so any cost the provider

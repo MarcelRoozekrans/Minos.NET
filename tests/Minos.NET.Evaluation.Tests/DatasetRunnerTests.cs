@@ -545,10 +545,10 @@ public sealed class DatasetRunnerTests
             () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 1 }).WaitAsync(TimeSpan.FromSeconds(10)));
 
         Assert.Same(boom, ex.InnerException);
-        Assert.Equal(["i0", "i1", "i2", "i3", "i4"], ex.PartialResults.Items.Select(i => i.Id));
-        Assert.True(ex.PartialResults.Header.Partial);
-        Assert.Equal(5, ex.PartialResults.Header.ItemCount);
-        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+        Assert.Equal(["i0", "i1", "i2", "i3", "i4"], ex.PartialResults!.Items.Select(i => i.Id));
+        Assert.True(ex.PartialResults!.Header.Partial);
+        Assert.Equal(5, ex.PartialResults!.Header.ItemCount);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
     }
 
     [Fact]
@@ -575,13 +575,13 @@ public sealed class DatasetRunnerTests
         var ex = await Assert.ThrowsAsync<DatasetRunException>(
             () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 3 }).WaitAsync(TimeSpan.FromSeconds(10)));
 
-        var ids = ex.PartialResults.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var ids = ex.PartialResults!.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
         Assert.Equal([.. ids.Order()], ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Contains(0, ids);
         Assert.DoesNotContain(4, ids);
-        Assert.Equal(ids.Count, ex.PartialResults.Header.ItemCount);
-        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+        Assert.Equal(ids.Count, ex.PartialResults!.Header.ItemCount);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
     }
 
     [Fact]
@@ -594,7 +594,7 @@ public sealed class DatasetRunnerTests
             () => DatasetRunner.RunAsync(Simple(), Many(5), new DatasetRunOptions { Progress = progress }));
 
         Assert.Same(boom, ex.InnerException);
-        Assert.Equal(["i0", "i1"], ex.PartialResults.Items.Select(i => i.Id));
+        Assert.Equal(["i0", "i1"], ex.PartialResults!.Items.Select(i => i.Id));
     }
 
     private sealed class ThrowingProgress(int at, Exception ex) : IProgress<int>
@@ -728,7 +728,7 @@ public sealed class DatasetRunnerTests
             () => DatasetRunner.RunAsync(client, Many(5), cancellationToken: cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
 
         var stopped = Assert.IsType<DatasetRunException>(ex);
-        Assert.Equal(["i0", "i1"], stopped.PartialResults.Items.Select(i => i.Id));
+        Assert.Equal(["i0", "i1"], stopped.PartialResults!.Items.Select(i => i.Id));
     }
 
     [Fact]
@@ -873,5 +873,29 @@ public sealed class DatasetRunnerTests
         var ex = new DatasetRunException(ReportFixture.PartialResults(items), new InvalidOperationException("boom"));
 
         Assert.Contains(expected, ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void StandardConstructors_LeavePartialResultsNull()
+    {
+        var inner = new InvalidOperationException("inner");
+
+        DatasetRunException[] made = [new(), new("stopped"), new("stopped", inner), new("stopped", null)];
+
+        Assert.All(made, ex => Assert.Null(ex.PartialResults));
+        Assert.NotEmpty(made[0].Message);
+        Assert.Equal("stopped", made[1].Message);
+        Assert.Same(inner, made[2].InnerException);
+        Assert.Null(made[3].InnerException);
+    }
+
+    [Fact]
+    public void ResultsConstructor_KeepsThePartialResults()
+    {
+        var partial = ReportFixture.PartialResults();
+
+        var ex = new DatasetRunException(partial, new InvalidOperationException("boom"));
+
+        Assert.Same(partial, ex.PartialResults);
     }
 }
