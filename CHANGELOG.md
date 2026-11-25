@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.13.2...v2.0.0) (2026-11-25)
+
+
+### ⚠ BREAKING CHANGES
+
+* **evaluation:** DatasetRunException.PartialResults is now nullable. Code that read it without a check, such as ex.PartialResults.Items, no longer compiles cleanly with nullable reference types on. Migrate by null-checking it first: if ex.PartialResults is not null, use it. The runner never throws the exception without results.
+
+### Features
+
+* **evaluation:** give DatasetRunException the standard constructors and a nullable PartialResults ([#396](https://github.com/MarcelRoozekrans/Minos.NET/issues/396)) ([b95aa3f](https://github.com/MarcelRoozekrans/Minos.NET/commit/b95aa3ffd6433fcd7cabd8648bff572896d11428))
+
 ## [1.13.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.13.1...v1.13.2) (2026-11-17)
 
 

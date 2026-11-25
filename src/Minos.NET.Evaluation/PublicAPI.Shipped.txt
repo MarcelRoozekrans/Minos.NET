@@ -82,8 +82,11 @@ Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string!
 Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(System.Threading.CancellationToken token) -> void
 Minos.Evaluation.DatasetRunCanceledException.PartialResults.get -> Minos.Evaluation.EvaluationResults?
 Minos.Evaluation.DatasetRunException
+Minos.Evaluation.DatasetRunException.DatasetRunException() -> void
 Minos.Evaluation.DatasetRunException.DatasetRunException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception! innerException) -> void
-Minos.Evaluation.DatasetRunException.PartialResults.get -> Minos.Evaluation.EvaluationResults!
+Minos.Evaluation.DatasetRunException.DatasetRunException(string! message) -> void
+Minos.Evaluation.DatasetRunException.DatasetRunException(string! message, System.Exception? innerException) -> void
+Minos.Evaluation.DatasetRunException.PartialResults.get -> Minos.Evaluation.EvaluationResults?
 Minos.Evaluation.DatasetRunner
 Minos.Evaluation.DatasetRunOptions
 Minos.Evaluation.DatasetRunOptions.DatasetName.get -> string!
